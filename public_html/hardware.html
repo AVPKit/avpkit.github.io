@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVPKit Hardware Acceleration</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #0d6efd;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .header nav a {
+            color: white;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+        .content {
+            padding: 50px 20px;
+        }
+        .content h1, .content h2 {
+            text-align: center;
+        }
+        .section {
+            margin: 40px 0;
+        }
+        .section h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .section p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .section ul li {
+            padding: 5px 0;
+        }
+        .footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AVPKit</h1>
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#features">Features</a>
+            <a href="#documentation">Documentation</a>
+            <a href="#community">Community</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </div>
+
+    <div class="content">
+        <h1>Hardware Acceleration in AVPKit</h1>
+        <p>AVPKit leverages GPU acceleration to enhance processing speed and efficiency. By offloading intensive tasks to the GPU, AVPKit ensures faster performance and lower CPU usage, making it ideal for demanding applications. The SDK supports a range of technologies to ensure optimal performance across different platforms.</p>
+
+        <div class="section">
+            <h2>Supported Technologies</h2>
+            <ul>
+                <li><strong>NVIDIA NVENC/NVDEC</strong>:
+                    <ul>
+                        <li><strong>NVENC (NVIDIA Encoder)</strong>: Utilize NVIDIA’s dedicated hardware encoder for video encoding, offering high performance and efficiency. Ideal for live streaming, video conferencing, and real-time encoding.</li>
+                        <li><strong>NVDEC (NVIDIA Decoder)</strong>: Leverage NVIDIA’s hardware decoder for efficient video decoding, reducing CPU load and improving playback performance. Suitable for video playback, editing, and transcoding applications.</li>
+                    </ul>
+                </li>
+                <li><strong>Intel Quick Sync Video</strong>:
+                    <ul>
+                        <li>Take advantage of Intel’s Quick Sync Video technology, which provides fast and efficient video encoding and decoding by utilizing the dedicated media processing capabilities of Intel processors. Perfect for video conferencing, streaming, and real-time applications.</li>
+                    </ul>
+                </li>
+                <li><strong>AMD Video Coding Engine (VCE)</strong>:
+                    <ul>
+                        <li><strong>Encoding</strong>: Use AMD’s Video Coding Engine for efficient video encoding, delivering high-quality video with minimal CPU overhead. Suitable for gaming capture, streaming, and real-time encoding tasks.</li>
+                        <li><strong>Decoding</strong>: Benefit from AMD’s hardware decoding capabilities to ensure smooth video playback and editing.</li>
+                    </ul>
+                </li>
+                <li><strong>Apple VideoToolbox</strong>:
+                    <ul>
+                        <li>Leverage Apple’s VideoToolbox framework for hardware-accelerated video encoding and decoding on iOS and macOS devices. This ensures efficient video processing with high performance, ideal for apps requiring video streaming, playback, and editing.</li>
+                    </ul>
+                </li>
+                <li><strong>Android MediaCodec</strong>:
+                    <ul>
+                        <li>Utilize Android’s MediaCodec API for hardware-accelerated video encoding and decoding, providing efficient video processing on Android devices. This is perfect for applications that require high-quality video playback, recording, and streaming.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Benefits</h2>
+            <ul>
+                <li><strong>Enhanced Performance</strong>: Accelerate video and audio processing tasks with GPU support, reducing CPU load and improving efficiency.</li>
+                <li><strong>High-Quality Video</strong>: Maintain high-quality video output with efficient encoding and decoding processes.</li>
+                <li><strong>Scalability</strong>: Support large-scale applications and handle high data volumes with robust hardware acceleration technologies.</li>
+            </ul>
+        </div>
+
+        <h2>Conclusion</h2>
+        <p>By leveraging hardware acceleration technologies, AVPKit ensures optimal performance for demanding audio and video processing tasks. Integrating AVPKit into your projects will provide enhanced speed and efficiency, making it the ideal choice for high-performance media applications.</p>
+
+        <div class="footer">
+            <p>Contact Us: 123 Main Street, Saint-Jean, France | email@example.com | +33 1 23 45 67 89</p>
+            <p>© 2024 AVPKit. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

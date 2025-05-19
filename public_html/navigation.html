@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AVPKit Side Navigation</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <link rel="stylesheet" href="styles.css">
+        <style>
+
+            a {
+                color: #00A3E0;
+            }
+
+            p {
+                justify-self: center;
+                text-align: center;
+                width: 75%;
+                font-size: 1.1em;
+                line-height: 1.6;
+            }
+
+            body {
+                font-family: 'Roboto', sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #121212;
+                color: #e0e0e0;
+                display: flex;
+                min-height: 100vh;
+            }
+            nav {
+                background-color: #00758F;
+                color: white;
+                width: 250px;
+                flex-shrink: 0;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                height: 100vh;
+            }
+            nav .logo {
+                font-size: 1.5em;
+                font-weight: bold;
+                margin-bottom: 30px;
+                cursor: pointer;
+            }
+            nav a {
+                color: white;
+                margin: 10px 0;
+                text-decoration: none;
+                display: block;
+                width: 100%;
+                text-align: left;
+            }
+            nav .github-link {
+                background-color: #00A3E0;
+                padding: 10px;
+                border-radius: 5px;
+                transition: background-color 0.3s;
+                margin-top: auto;
+                width: fit-content;
+            }
+            nav .github-link:hover {
+                background-color: #00758F;
+            }
+            nav .github-link i {
+                margin-right: 0;
+            }
+            .content {
+                flex-grow: 1;
+                padding: 50px 20px;
+            }
+            .content h1 {
+                text-align: center;
+                /*width: 100vw;*/
+            }
+            .content h2 {
+                text-align: center;
+            }
+            .detail {
+                display: flex;
+                justify-content: space-around;
+            }
+            .section {
+                margin: 40px 0;
+                padding: 20px;
+                background-color: #1e1e1e;
+                border-radius: 10px;
+                transition: transform 0.3s, box-shadow 0.3s;
+                display: inline-block;
+                width: 40%;
+            }
+            .section:hover {
+                transform: translateY(-10px);
+                box-shadow: 0 15px 20px rgba(0, 0, 0, 0.3);
+            }
+            .section h2 {
+                font-size: 2em;
+                margin-bottom: 20px;
+            }
+            .section p, .section ul {
+                font-size: 1.1em;
+                line-height: 1.6;
+                text-align: left;
+                width: 100%;
+            }
+            .section ul {
+                list-style: none;
+                padding: 0;
+            }
+            .section ul li {
+                padding: 5px 0;
+            }
+            .footer {
+                background-color: #00758F;
+                color: white;
+                text-align: center;
+                padding: 20px;
+                margin-top: 40px;
+            }
+            .footer p {
+                margin: 5px 0;
+            }
+            
+            @media (max-width: 768px) {
+                nav {
+                    width: 100%;
+                    flex-direction: row;
+                    justify-content: space-between;
+                    position: fixed;
+                    top: 0;
+                    display: none;
+                }
+                nav a {
+                    margin: 0 10px;
+                }
+                .content {
+                    padding: 20px;
+                }
+                .section {
+                    flex: 1 1 100%;
+                    width: 80%;
+                }
+                .detail{
+                    flex-direction: column;
+                    align-items: center;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <div class="logo" onclick="location.href = 'index.html'">AVPKit</div>
+            <a href="#cross">Cross-Platform Compatibility</a>
+            <a href="#audio">Advanced Audio Processing</a>
+            <a href="#video">Advanced Video Processing</a>
+            <a href="#realtime">Real-Time Processing</a>
+            <a href="#hardware">Hardware Acceleration</a>
+            <a href="https://github.com/olivierayache/xuggle-xuggler" class="github-link" target="_blank">
+                <i class="fab fa-github"></i>
+                Code
+            </a>
+        </nav>
+        <div>
+            <div class="content" id="cross">
+                <h1>Cross-Platform Compatibility in AVPKit</h1>
+                <p>AVPKit is designed to work seamlessly across multiple platforms, including Windows, macOS, Linux, iOS, and Android. By using Java and Kotlin, you can develop your application once and deploy it everywhere, ensuring consistent performance across all supported platforms.</p>
+
+                <div class="detail">
+                    <div class="section">
+                        <h2>Features</h2>
+                        <ul>
+                            <li><strong>Develop Once, Deploy Everywhere with Java/Kotlin</strong>: Create your application using Java/Kotlin and deploy it on multiple platforms without additional effort.</li>
+                            <li><strong>Consistent Performance</strong>: Ensure that your application performs reliably and consistently across all supported platforms.</li>
+                            <li><strong>iOS Compatibility with Kotlin Multiplatform</strong>: Achieve cross-platform compatibility on iOS using Kotlin Multiplatform, allowing you to share common code between Android and iOS.</li>
+                        </ul>
+                    </div>
+
+                    <div class="section">
+                        <h2>Benefits</h2>
+                        <ul>
+                            <li><strong>Cost Efficiency</strong>: Save time and resources by developing for multiple platforms simultaneously with Java/Kotlin.</li>
+                            <li><strong>Ease of Maintenance</strong>: Simplify the maintenance process with a single codebase for all platforms.</li>
+                            <li><strong>Wide Audience Reach</strong>: Reach a broader audience by supporting multiple platforms.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+            <div class="content" id="audio">
+                <h1>Advanced Audio Processing in AVPKit</h1>
+                <p>Enhance your audio with AVPKit's advanced processing features, powered by FFmpeg's <a href="https://ffmpeg.org/libavfilter.html">libavfilter</a> and <a href="https://ffmpeg.org/libavcodec.html">libavcodec</a>. AVPKit offers a range of powerful tools to apply audio effects, reduce background noise, and mix multiple audio tracks seamlessly, ensuring professional-quality audio for your applications.</p>
+
+                <div class="detail">
+                    <div class="section" >
+
+                        <h2>Audio Effects</h2>
+                        <ul>
+                            <li><strong>Echo:</strong> Uses the <a href="https://ffmpeg.org/ffmpeg-filters.html#aecho" target="_blank">aecho</a> filter to add depth and ambiance.</li>
+                            <li><strong>Reverb:</strong> Utilizes the <a href="https://ffmpeg.org/ffmpeg-filters.html#areverb" target="_blank">areverb</a> filter to simulate various acoustic environments.</li>
+                            <li><strong>Equalization:</strong> Employs the <a href="https://ffmpeg.org/ffmpeg-filters.html#anequalizer" target="_blank">anequalizer</a> filter to adjust frequency balance.</li>
+                            <li><strong>Background Noise Reduction:</strong> Implements the <a href="https://ffmpeg.org/ffmpeg-filters.html#anlmdn" target="_blank">anlmdn</a> filter to minimize unwanted background noise.</li>
+                            <li><strong>Dynamic Noise Suppression:</strong> Uses the <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank">dynaudnorm</a> filter to reduce noise fluctuations.</li>
+                        </ul>
+
+                        <h2>Audio Mixing</h2>
+                        <ul>
+                            <li><strong>Multi-Track Mixing:</strong> Combines multiple audio streams with the <a href="https://ffmpeg.org/ffmpeg-filters.html#amix" target="_blank">amix</a> filter.</li>
+                            <li><strong>Audio Fades:</strong> Implements fade-in and fade-out effects using the <a href="https://ffmpeg.org/ffmpeg-filters.html#afade" target="_blank">afade</a> filter.</li>
+                            <li><strong>Volume Normalization:</strong> Applies loudness normalization with the <a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank">loudnorm</a> filter.</li>
+                        </ul>
+
+                        <h2>Audio Compression</h2> 
+                        <ul> 
+                            <li><strong>Efficient Compression:</strong> Compress audio files and streams without compromising quality using <a href="https://ffmpeg.org/libavcodec.html" target="_blank">FFmpeg's libavcodec</a>, supporting codecs such as AAC, MP3, Vorbis, Opus, FLAC.</li> 
+                        </ul>
+
+                        <p><em>(Note: These features represent a selection of available options within the SDK and are not exhaustive.)</em></p>
+
+                    </div>
+
+                    <div class="section">
+                        <h2>Benefits</h2>
+                        <ul>
+                            <li><strong>Enhanced Audio Quality</strong>: Create high-quality audio content with professional effects and noise reduction, making your applications sound polished and engaging.</li>
+                            <li><strong>Versatile Audio Manipulation</strong>: Easily manipulate audio tracks to suit your specific needs, whether it's for editing, production, or live streaming.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="content" id="video">
+                <h1>Advanced Video Processing in AVPKit</h1>
+                <p>Empower your development with AVPKit's advanced video processing features, powered by FFmpeg's <a href="https://ffmpeg.org/libavfilter.html">libavfilter</a> and <a href="https://ffmpeg.org/libavcodec.html">libavcodec</a>. AVPKit provides powerful tools to apply video effects, efficiently compress videos, and enable seamless integration and optimization for professional-quality video applications.</p>
+
+                <div class="detail">
+                    <div class="section">
+
+
+
+                        <h2>Video Effects</h2> 
+                        <ul> 
+                            <li><strong>Filters:</strong> Apply various visual filters using the <a href="https://ffmpeg.org/ffmpeg-filters.html#hue" target="_blank">hue</a>, <a href="https://ffmpeg.org/ffmpeg-filters.html#eq" target="_blank">eq</a>, <a href="https://ffmpeg.org/ffmpeg-filters.html#vignette" target="_blank">vignette</a>, and <a href="https://ffmpeg.org/ffmpeg-filters.html#curves" target="_blank">curves</a> filters to enhance video appeal.</li> 
+                            <li><strong>Color Correction:</strong> Adjust color balance with the <a href="https://ffmpeg.org/ffmpeg-filters.html#eq" target="_blank">eq</a>, <a href="https://ffmpeg.org/ffmpeg-filters.html#colorbalance" target="_blank">colorbalance</a>, and <a href="https://ffmpeg.org/ffmpeg-filters.html#colorchannelmixer" target="_blank">colorchannelmixer</a> filters to improve visual quality and achieve desired aesthetics.</li> 
+                            <li><strong>Transitions:</strong> Add smooth transitions between video clips using the <a href="https://ffmpeg.org/ffmpeg-filters.html#xfade" target="_blank">xfade</a> filter for professional results.</li> 
+                        </ul> 
+
+                        <h2>Video Compression</h2> 
+                        <ul> 
+                            <li><strong>Efficient Compression:</strong> Compress video files and streams without compromising quality using <a href="https://ffmpeg.org/libavcodec.html" target="_blank">FFmpeg's libavcodec</a>, supporting codecs such as H.264, H.265 (HEVC), VP8, and VP9.</li> </ul> 
+
+
+                        <p><em>(Note: These features represent a selection of available options within the SDK and are not exhaustive.)</em></p>
+
+
+                    </div>
+
+                    <div class="section">
+                        <h2>Benefits</h2>
+                        <ul>
+                            <li><strong>Enhanced Video Quality</strong>: Create high-quality video content with professional effects and tools, making your applications visually engaging.</li>
+                            <li><strong>Efficient Video Management</strong>: Easily compress and process videos to optimize storage and playback.</li>
+                            <li><strong>Developer Empowerment</strong>: Utilize advanced APIs, performance tools, and customization options to build robust and optimized video applications.</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="content" id="realtime">
+                <h1>Real-Time Processing in AVPKit</h1>
+                <p>AVPKit is designed to deliver exceptional real-time processing capabilities, making it an ideal choice for applications that require low latency and high performance. Whether it's for live streaming, interactive media, or real-time video conferencing, AVPKit ensures your applications run smoothly and efficiently.</p>
+                <div class="detail">
+                    <div class="section">
+                        <h2>Features</h2>
+                        <ul>
+                            <li><strong>Real-Time Processing</strong>: Achieve minimal delay in audio and video processing, ensuring seamless and interactive user experiences.</li>
+                            <li><strong>Optimized for Speed</strong>: AVPKit's architecture is optimized to handle high-speed data transfer and processing, minimizing latency.</li>
+                            <li><strong>In-Memory Processing</strong>: Process data in memory to further reduce latency and enhance real-time performance.</li>
+                            <li><strong>Efficient Resource Utilization</strong>: Maximize performance by efficiently utilizing system resources, including CPU and GPU.</li>
+                            <li><strong>Scalability</strong>: Handle high-volume data streams and large-scale applications with ease, ensuring consistent performance even under heavy load.</li>
+                            <li><strong>Integration with Hardware Acceleration</strong>: Leverage hardware acceleration technologies to boost processing speed and efficiency.</li>
+                        </ul>
+                    </div>
+
+                    <div class="section">
+                        <h2>Benefits</h2>
+                        <ul>
+                            <li><strong>Enhanced User Experience</strong>: Provide users with smooth and responsive real-time applications, from live streaming to interactive media.</li>
+                            <li><strong>Scalable Solutions</strong>: Build applications that can scale to meet high demand and handle large volumes of data without compromising performance.</li>
+                            <li><strong>Developer Efficiency</strong>: Simplify the development process with tools and technologies that support real-time processing, reducing time to market and improving application performance.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div class="content" id="hardware">
+                    <h1>Hardware Acceleration in AVPKit</h1>
+                    <p>AVPKit leverages GPU acceleration to enhance processing speed and efficiency. By offloading intensive tasks to the GPU, AVPKit ensures faster performance and lower CPU usage, making it ideal for demanding applications. The SDK supports a range of technologies to ensure optimal performance across different platforms.</p>
+
+                    <div class="detail">
+                        <div class="section">
+
+                            <h2>NVIDIA NVENC/NVDEC</h2>
+                            <p><strong>Encoding & Decoding:</strong> Utilize NVIDIA’s dedicated hardware for video encoding (NVENC) and decoding (NVDEC). This offers high performance and efficiency, ideal for live streaming, video conferencing, real-time encoding, video playback, editing, and transcoding applications.</p>
+
+                            <h2>Apple VideoToolbox</h2>
+                            <p><strong>Encoding & Decoding:</strong> Leverage Apple’s VideoToolbox framework for hardware-accelerated video encoding and decoding on iOS and macOS devices. This ensures efficient video processing with high performance, ideal for apps requiring video streaming, playback, and editing.</p>
+
+                            <h2>Android MediaCodec</h2>
+                            <p><strong>Encoding & Decoding:</strong> Utilize Android’s MediaCodec API for hardware-accelerated video encoding and decoding, providing efficient video processing on Android devices. This is perfect for applications that require high-quality video playback, recording, and streaming.</p>
+
+
+                        </div>
+
+                        <div class="section">
+                            <h2>Benefits</h2>
+                            <ul>
+                                <li><strong>Enhanced Performance</strong>: Accelerate video and audio processing tasks with GPU support, reducing CPU load and improving efficiency.</li>
+                                <li><strong>High-Quality Video</strong>: Maintain high-quality video output with efficient encoding and decoding processes.</li>
+                                <li><strong>Scalability</strong>: Support large-scale applications and handle high data volumes with robust hardware acceleration technologies.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </body>
+</html>

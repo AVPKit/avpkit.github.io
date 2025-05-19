@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AVPKit</title>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <style>
+            body {
+                font-family: 'Roboto', sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #121212;
+                color: #e0e0e0;
+            }
+            nav {
+                background-color: #00758F;
+                color: white;
+                display: flex;
+                justify-content: space-between;
+                padding: 15px 0px;
+                align-items: center;
+                position: fixed;
+                top: 0;
+                width: 100%;
+            }
+            nav .logo {
+                font-size: 1.5em;
+                font-weight: bold;
+                padding: 0px 10px;
+            }
+            nav a {
+                color: white;
+                margin: 0 15px;
+                text-decoration: none;
+            }
+            nav .github-link {
+                background-color: #00A3E0;
+                padding: 5px 10px;
+                border-radius: 5px;
+                transition: background-color 0.3s;
+            }
+            nav .github-link:hover {
+                background-color: #00758F;
+            }
+            nav .github-link i {
+                margin-right: 0;
+            }
+            .hero {
+                background: url('background-image.jpg') no-repeat center center/cover;
+                color: white;
+                text-align: center;
+                padding: 100px 20px;
+                justify-items: center;
+            }
+            .hero h1 {
+                font-size: 3em;
+                margin: 0;
+            }
+            .hero p {
+                font-size: 1.2em;
+                margin: 20px 0;
+                width: 75%;
+            }
+            .hero .cta-buttons {
+                margin-top: 30px;
+            }
+            .hero .cta-buttons a {
+                text-decoration: none;
+                padding: 15px 30px;
+                margin: 0 10px;
+                background-color: #00A3E0;
+                color: white;
+                border-radius: 5px;
+                font-size: 1em;
+                transition: background-color 0.3s, color 0.3s;
+            }
+            .hero .cta-buttons a:hover {
+                background-color: #00758F;
+                color: white;
+            }
+            .features-overview {
+                background-color: #1e1e1e;
+                color: #e0e0e0;
+                text-align: center;
+                padding: 50px 20px;
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .features-overview h2 {
+                font-size: 2.5em;
+                margin-bottom: 30px;
+                width: 100vw;
+            }
+            .features-overview .feature {
+                cursor: pointer;
+                display: inline-block;
+                width: 30%;
+                padding: 20px;
+                margin: 10px;
+                background-color: #2e2e2e;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                border-radius: 10px;
+                box-sizing: border-box;
+                transition: transform 0.3s, box-shadow 0.3s;
+            }
+            .features-overview .feature:hover {
+                transform: translateY(-10px);
+                box-shadow: 0 15px 20px rgba(0, 0, 0, 0.3);
+            }
+            .features-overview .feature img {
+                width: 50px;
+                height: 50px;
+            }
+            .features-overview .feature h3 {
+                font-size: 1.5em;
+                margin: 15px 0;
+            }
+            .features-overview .feature p {
+                font-size: 1em;
+            }
+            footer {
+                background-color: #00758F;
+                color: white;
+                text-align: center;
+                padding: 10px 20px;
+            }
+            footer a {
+                color: white;
+                text-decoration: none;
+                margin: 0 10px;
+            }
+            footer .github-link i {
+                font-size: 1.5em;
+            }
+
+            @media (max-width: 768px) {
+                .features-overview .feature {
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+                    align-items: center;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <div class="logo">AVPKit</div>
+            <div>
+                <a href="#documentation">Documentation</a>
+                <a href="https://github.com/olivierayache/xuggle-xuggler" class="github-link" target="_blank">
+                    <i class="fab fa-github"></i>
+                </a>
+            </div>
+        </nav>
+        <div class="hero">
+            <h1>Unlock the Power of Audio and Video Processing with AVPKit</h1>
+            <p>AVPKit is a cutting-edge cross-platform SDK designed to simplify and enhance audio and video processing for developers. Built on the robust FFmpeg framework, AVPKit offers powerful tools and seamless integration to create high-quality media applications. The mobile SDK is Java/Kotlin based for Android development and exclusively Kotlin for iOS development.</p>
+            <div class="cta-buttons">
+                <a href="#download">Download</a>
+                <a href="#get-started">Get Started</a>
+            </div>
+        </div>
+
+        <div class="features-overview">
+            <h2>Why Choose AVPKit?</h2>
+            <div onclick="location.href = 'navigation.html#cross'" class="feature" >
+                <img src="cross-platform-icon.png" alt="Cross-Platform Compatibility">
+                <h3>Cross-Platform Compatibility</h3>
+                <p>Develop once, deploy everywhere.</p>
+            </div>
+            <div onclick="location.href = 'navigation.html#audio'" class="feature">
+                <img src="audio-processing-icon.png" alt="Advanced Audio Processing">
+                <h3>Advanced Audio Processing</h3>
+                <p>Apply effects, reduce noise, and mix audio tracks.</p>
+            </div>
+            <div onclick="location.href = 'navigation.html#video'" class="feature">
+                <img src="video-processing-icon.png" alt="Advanced Video Processing">
+                <h3>Advanced Video Processing</h3>
+                <p>Add filters, compress videos, and edit clips.</p>
+            </div>
+            <div onclick="location.href = 'navigation.html#realtime'" class="feature">
+                <img src="real-time-icon.png" alt="Real-Time Processing">
+                <h3>Real-Time Processing</h3>
+                <p>Achieve low latency and high performance.</p>
+            </div>
+            <div onclick="location.href = 'navigation.html#hardware'" class="feature">
+                <img src="hardware-acceleration-icon.png" alt="Hardware Acceleration">
+                <h3>Hardware Acceleration</h3>
+                <p>Enhance processing speed with GPU acceleration.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 AVPKit. All rights reserved.</p>
+            <a href="https://github.com/olivierayache/xuggle-xuggler" class="github-link" target="_blank">
+                <i class="fab fa-github"></i>
+            </a>
+        </footer>
+    </body>
+</html>
