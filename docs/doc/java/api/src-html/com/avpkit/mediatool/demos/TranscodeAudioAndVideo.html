@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<main role="main">
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span><a id="line.1">/*******************************************************************************</a>
+<span class="sourceLineNo">002</span><a id="line.2"> * Copyright (c) 2024, 2026, Olivier Ayache.  All rights reserved.</a>
+<span class="sourceLineNo">003</span><a id="line.3"> *</a>
+<span class="sourceLineNo">004</span><a id="line.4"> * This file is part of AVPKit.</a>
+<span class="sourceLineNo">005</span><a id="line.5"> *</a>
+<span class="sourceLineNo">006</span><a id="line.6"> * AVPKit is free software: you can redistribute it and/or modify</a>
+<span class="sourceLineNo">007</span><a id="line.7"> * it under the terms of the GNU Lesser General Public License as published by</a>
+<span class="sourceLineNo">008</span><a id="line.8"> * the Free Software Foundation, either version 3 of the License, or</a>
+<span class="sourceLineNo">009</span><a id="line.9"> * (at your option) any later version.</a>
+<span class="sourceLineNo">010</span><a id="line.10"> *</a>
+<span class="sourceLineNo">011</span><a id="line.11"> * AVPKit is distributed in the hope that it will be useful,</a>
+<span class="sourceLineNo">012</span><a id="line.12"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</a>
+<span class="sourceLineNo">013</span><a id="line.13"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</a>
+<span class="sourceLineNo">014</span><a id="line.14"> * GNU Lesser General Public License for more details.</a>
+<span class="sourceLineNo">015</span><a id="line.15"> *</a>
+<span class="sourceLineNo">016</span><a id="line.16"> * You should have received a copy of the GNU Lesser General Public License</a>
+<span class="sourceLineNo">017</span><a id="line.17"> * along with AVPKit.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</a>
+<span class="sourceLineNo">018</span><a id="line.18"> *******************************************************************************/</a>
+<span class="sourceLineNo">019</span><a id="line.19"></a>
+<span class="sourceLineNo">020</span><a id="line.20">package com.avpkit.mediatool.demos;</a>
+<span class="sourceLineNo">021</span><a id="line.21"></a>
+<span class="sourceLineNo">022</span><a id="line.22">import java.io.File;</a>
+<span class="sourceLineNo">023</span><a id="line.23"></a>
+<span class="sourceLineNo">024</span><a id="line.24"></a>
+<span class="sourceLineNo">025</span><a id="line.25">import com.avpkit.mediatool.IMediaReader;</a>
+<span class="sourceLineNo">026</span><a id="line.26">import com.avpkit.mediatool.IMediaViewer;</a>
+<span class="sourceLineNo">027</span><a id="line.27">import com.avpkit.mediatool.IMediaWriter;</a>
+<span class="sourceLineNo">028</span><a id="line.28">import com.avpkit.mediatool.ToolFactory;</a>
+<span class="sourceLineNo">029</span><a id="line.29"></a>
+<span class="sourceLineNo">030</span><a id="line.30">import static java.lang.System.out;</a>
+<span class="sourceLineNo">031</span><a id="line.31">import static java.lang.System.exit;</a>
+<span class="sourceLineNo">032</span><a id="line.32"></a>
+<span class="sourceLineNo">033</span><a id="line.33">/** </a>
+<span class="sourceLineNo">034</span><a id="line.34"> * A very simple media transcoder which uses {@link IMediaReader}, {@link</a>
+<span class="sourceLineNo">035</span><a id="line.35"> * IMediaWriter} and {@link IMediaViewer}.</a>
+<span class="sourceLineNo">036</span><a id="line.36"> */</a>
+<span class="sourceLineNo">037</span><a id="line.37"></a>
+<span class="sourceLineNo">038</span><a id="line.38">public class TranscodeAudioAndVideo</a>
+<span class="sourceLineNo">039</span><a id="line.39">{</a>
+<span class="sourceLineNo">040</span><a id="line.40">  /**</a>
+<span class="sourceLineNo">041</span><a id="line.41">   * Transcodes a media file into a new media file, guessing parameters </a>
+<span class="sourceLineNo">042</span><a id="line.42">   * and codecs</a>
+<span class="sourceLineNo">043</span><a id="line.43">   * based on the file names.</a>
+<span class="sourceLineNo">044</span><a id="line.44">   * @param args 2 strings; an input file and an output file.</a>
+<span class="sourceLineNo">045</span><a id="line.45">   */</a>
+<span class="sourceLineNo">046</span><a id="line.46">  public static void main(String[] args)</a>
+<span class="sourceLineNo">047</span><a id="line.47">  {</a>
+<span class="sourceLineNo">048</span><a id="line.48">    if (args.length &lt; 2)</a>
+<span class="sourceLineNo">049</span><a id="line.49">    {</a>
+<span class="sourceLineNo">050</span><a id="line.50">      out.println("To perform a simple media transcode.  The destination " +</a>
+<span class="sourceLineNo">051</span><a id="line.51">        "format will be guessed from the file extention.");</a>
+<span class="sourceLineNo">052</span><a id="line.52">      out.println("");</a>
+<span class="sourceLineNo">053</span><a id="line.53">      out.println("   TranscodeAudioAndVideo &lt;source-file&gt; &lt;destination-file&gt;");</a>
+<span class="sourceLineNo">054</span><a id="line.54">      out.println("");</a>
+<span class="sourceLineNo">055</span><a id="line.55">      out.println(</a>
+<span class="sourceLineNo">056</span><a id="line.56">        "The destination type will be guess from the supplied file extsion.");</a>
+<span class="sourceLineNo">057</span><a id="line.57">      exit(0);</a>
+<span class="sourceLineNo">058</span><a id="line.58">    }</a>
+<span class="sourceLineNo">059</span><a id="line.59"></a>
+<span class="sourceLineNo">060</span><a id="line.60">    File source = new File(args[0]);</a>
+<span class="sourceLineNo">061</span><a id="line.61">    if (!source.exists())</a>
+<span class="sourceLineNo">062</span><a id="line.62">    {</a>
+<span class="sourceLineNo">063</span><a id="line.63">      out.println("Source file does not exist: " + source);</a>
+<span class="sourceLineNo">064</span><a id="line.64">      exit(0);</a>
+<span class="sourceLineNo">065</span><a id="line.65">    }</a>
+<span class="sourceLineNo">066</span><a id="line.66"></a>
+<span class="sourceLineNo">067</span><a id="line.67">    transcode(args[0], args[1]);</a>
+<span class="sourceLineNo">068</span><a id="line.68">  }</a>
+<span class="sourceLineNo">069</span><a id="line.69"></a>
+<span class="sourceLineNo">070</span><a id="line.70">  /**</a>
+<span class="sourceLineNo">071</span><a id="line.71">   * Transcode a source url to a destination url.  Really.  That's</a>
+<span class="sourceLineNo">072</span><a id="line.72">   * all this does.</a>
+<span class="sourceLineNo">073</span><a id="line.73">   */</a>
+<span class="sourceLineNo">074</span><a id="line.74"></a>
+<span class="sourceLineNo">075</span><a id="line.75">  public static void transcode(String sourceUrl, String destinationUrl)</a>
+<span class="sourceLineNo">076</span><a id="line.76">  {</a>
+<span class="sourceLineNo">077</span><a id="line.77">    out.printf("transcode %s -&gt; %s\n", sourceUrl, destinationUrl);</a>
+<span class="sourceLineNo">078</span><a id="line.78"></a>
+<span class="sourceLineNo">079</span><a id="line.79">    // create the media reader, not that no BufferedImages need to be</a>
+<span class="sourceLineNo">080</span><a id="line.80">    // created because the video is not going to be manipulated</a>
+<span class="sourceLineNo">081</span><a id="line.81"></a>
+<span class="sourceLineNo">082</span><a id="line.82">    IMediaReader reader = ToolFactory.makeReader(sourceUrl);</a>
+<span class="sourceLineNo">083</span><a id="line.83"></a>
+<span class="sourceLineNo">084</span><a id="line.84">    // add a viewer to the reader, to see progress as the media is</a>
+<span class="sourceLineNo">085</span><a id="line.85">    // transcoded</a>
+<span class="sourceLineNo">086</span><a id="line.86"></a>
+<span class="sourceLineNo">087</span><a id="line.87">    reader.addListener(ToolFactory.makeViewer(true));</a>
+<span class="sourceLineNo">088</span><a id="line.88"></a>
+<span class="sourceLineNo">089</span><a id="line.89">    // create the media writer</a>
+<span class="sourceLineNo">090</span><a id="line.90">    reader.addListener(ToolFactory.makeWriter(destinationUrl, reader));</a>
+<span class="sourceLineNo">091</span><a id="line.91"></a>
+<span class="sourceLineNo">092</span><a id="line.92">    // read packets from the source file, which dispatch events to the</a>
+<span class="sourceLineNo">093</span><a id="line.93">    // writer, this will continue until </a>
+<span class="sourceLineNo">094</span><a id="line.94"></a>
+<span class="sourceLineNo">095</span><a id="line.95">    while (reader.readPacket() == null)</a>
+<span class="sourceLineNo">096</span><a id="line.96">      do {} while(false);</a>
+<span class="sourceLineNo">097</span><a id="line.97">  }</a>
+<span class="sourceLineNo">098</span><a id="line.98">}</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</main>
+</body>
+</html>

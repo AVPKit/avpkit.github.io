@@ -1,0 +1,7 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolHandlerFactory.html" title="A class for managing custom io protocols." alt="" coords="5,50,224,91"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManagerFactory.html" title="A class for managing custom io protocols." alt="" coords="272,5,479,61"/>
+<area shape="rect" id="node3" href="$classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolManager.html" title="A class for managing custom io protocols." alt="" coords="286,86,465,127"/>
+<area shape="rect" id="node4" href="$classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManager.html" title="A class for managing custom io protocols." alt="" coords="529,53,735,94"/>
+<area shape="rect" id="node5" href="$classcom_1_1avpkit_1_1core_1_1io_1_1StdioURLProtocolManager.html" title="A class for managing custom io protocols." alt="" coords="527,118,737,159"/>
+</map>

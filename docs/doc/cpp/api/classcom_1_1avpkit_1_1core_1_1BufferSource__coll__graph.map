@@ -1,0 +1,8 @@
+<map id="com::avpkit::core::BufferSource" name="com::avpkit::core::BufferSource">
+<area shape="rect" id="node1" title=" " alt="" coords="88,381,231,423"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1core_1_1IBufferSource.html" title=" " alt="" coords="5,291,148,332"/>
+<area shape="rect" id="node3" href="$classcom_1_1avpkit_1_1core_1_1IMediaFilter.html" title=" " alt="" coords="88,200,231,241"/>
+<area shape="rect" id="node6" href="$classcom_1_1avpkit_1_1core_1_1MediaFilter.html" title=" " alt="" coords="172,291,315,332"/>
+<area shape="rect" id="node4" href="$classcom_1_1avpkit_1_1ferry_1_1RefCounted.html" title="Parent of all Ferry objects – it mains reference counts in native code." alt="" coords="90,109,229,151"/>
+<area shape="rect" id="node5" href="$classcom_1_1avpkit_1_1ferry_1_1AtomicInteger.html" title="Internal only." alt="" coords="90,5,229,47"/>
+</map>

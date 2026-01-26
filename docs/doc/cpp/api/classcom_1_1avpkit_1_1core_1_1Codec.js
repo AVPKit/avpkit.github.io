@@ -1,0 +1,28 @@
+var classcom_1_1avpkit_1_1core_1_1Codec =
+[
+    [ "Codec", "classcom_1_1avpkit_1_1core_1_1Codec.html#a65787fa1a5ba62910784c4329aec24dd", null ],
+    [ "~Codec", "classcom_1_1avpkit_1_1core_1_1Codec.html#ad016f41d7fae998c625aecc80b06e067", null ],
+    [ "acquire", "classcom_1_1avpkit_1_1core_1_1Codec.html#a505dbf3234ff0cf57b137e1ea249aa5c", null ],
+    [ "canDecode", "classcom_1_1avpkit_1_1core_1_1Codec.html#aee3077ea4499f3d2443aa2ba10338eda", null ],
+    [ "canEncode", "classcom_1_1avpkit_1_1core_1_1Codec.html#a22e129420a8c36c782dafbb14bd40304", null ],
+    [ "getAVCodec", "classcom_1_1avpkit_1_1core_1_1Codec.html#ae49079621099d1fd2cc493443866c457", null ],
+    [ "getCapabilities", "classcom_1_1avpkit_1_1core_1_1Codec.html#aaac1726bdf21e1f501358d6a618aa6dc", null ],
+    [ "getID", "classcom_1_1avpkit_1_1core_1_1Codec.html#a95c81ccc24e55e85099eb1d5d3867623", null ],
+    [ "getIDAsInt", "classcom_1_1avpkit_1_1core_1_1Codec.html#af838181dfcfe899d9f18d7d8cb0f75ef", null ],
+    [ "getLongName", "classcom_1_1avpkit_1_1core_1_1Codec.html#aafe902611807d2b0a23e180971fdb26b", null ],
+    [ "getName", "classcom_1_1avpkit_1_1core_1_1Codec.html#abc7adf2dd60ef249df50a03143fe638f", null ],
+    [ "getNumSupportedAudioChannelLayouts", "classcom_1_1avpkit_1_1core_1_1Codec.html#a27970065213d0b96d2dfaaeff76eda09", null ],
+    [ "getNumSupportedAudioSampleFormats", "classcom_1_1avpkit_1_1core_1_1Codec.html#a494da1f8303c2e63d5c8902b541fa808", null ],
+    [ "getNumSupportedAudioSampleRates", "classcom_1_1avpkit_1_1core_1_1Codec.html#ae3a3de18be6ed4d52401e838c758bd8b", null ],
+    [ "getNumSupportedVideoFrameRates", "classcom_1_1avpkit_1_1core_1_1Codec.html#ab00d8804b94f1bc9d28316cefc9bb4d7", null ],
+    [ "getNumSupportedVideoPixelFormats", "classcom_1_1avpkit_1_1core_1_1Codec.html#a2bd9fc6d3b12375ef3795c35eb88330d", null ],
+    [ "getSupportedAudioChannelLayout", "classcom_1_1avpkit_1_1core_1_1Codec.html#a46a7473229c1a608e5b576a71b132909", null ],
+    [ "getSupportedAudioSampleFormat", "classcom_1_1avpkit_1_1core_1_1Codec.html#a6c160ae915c4994b6f2616b0957e4ba7", null ],
+    [ "getSupportedAudioSampleRate", "classcom_1_1avpkit_1_1core_1_1Codec.html#aeb6ae8638bff82a182b1415a0036e318", null ],
+    [ "getSupportedVideoFrameRate", "classcom_1_1avpkit_1_1core_1_1Codec.html#a3a92344f6f8ad232eebd58ecc780a99e", null ],
+    [ "getSupportedVideoPixelFormat", "classcom_1_1avpkit_1_1core_1_1Codec.html#a2e3a99c9443d51677ccd777830e8f9a8", null ],
+    [ "getType", "classcom_1_1avpkit_1_1core_1_1Codec.html#af7af979826e56e9245c57b600869a449", null ],
+    [ "hasCapability", "classcom_1_1avpkit_1_1core_1_1Codec.html#a07e517090a3bec0a95133347c7f76ddc", null ],
+    [ "release", "classcom_1_1avpkit_1_1core_1_1Codec.html#a35fb6c0ac7dd739edf6b89a92ca52949", null ],
+    [ "mCodec", "classcom_1_1avpkit_1_1core_1_1Codec.html#ad5f8f99b1151229361b1757b55bc91eb", null ]
+];

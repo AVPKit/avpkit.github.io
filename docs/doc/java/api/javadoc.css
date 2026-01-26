@@ -1,0 +1,33 @@
+/* javadoc.css - Custom JavaDoc Theme */
+
+/* Page background and text */
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+/* Headings */
+h1, h2, h3 {
+    color: #005a9c;
+}
+
+/* Links */
+a {
+    color: #0078d4;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Navigation bar */
+.navBarCell1Rev {
+    background-color: #005a9c;
+    color: white;
+}
+
+/* Table styling */
+.tableSubHeadingColor {
+    background-color: #e6f0ff;
+}

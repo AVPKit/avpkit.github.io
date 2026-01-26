@@ -1,0 +1,4 @@
+<map id="com::avpkit::ferry::RefCountedTester" name="com::avpkit::ferry::RefCountedTester">
+<area shape="rect" id="node1" title="Internal Only." alt="" coords="5,95,151,136"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1ferry_1_1RefCounted.html" title="Parent of all Ferry objects – it mains reference counts in native code." alt="" coords="9,5,147,47"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="com::avpkit::core::MediaDataWrapper" name="com::avpkit::core::MediaDataWrapper">
+<area shape="rect" id="node1" title=" " alt="" coords="7,381,155,423"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1core_1_1IMediaDataWrapper.html" title="This class wraps an IMediaData object, but then allows you to set new TimeStamps and TimeBases." alt="" coords="5,291,157,332"/>
+<area shape="rect" id="node3" href="$classcom_1_1avpkit_1_1core_1_1IMediaData.html" title="The parent class of all media objects than can be gotten from an IStream." alt="" coords="10,200,153,241"/>
+<area shape="rect" id="node4" href="$classcom_1_1avpkit_1_1ferry_1_1RefCounted.html" title="Parent of all Ferry objects – it mains reference counts in native code." alt="" coords="12,109,151,151"/>
+<area shape="rect" id="node5" href="$classcom_1_1avpkit_1_1ferry_1_1AtomicInteger.html" title="Internal only." alt="" coords="12,5,151,47"/>
+</map>

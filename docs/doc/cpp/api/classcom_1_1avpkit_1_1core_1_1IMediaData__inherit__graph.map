@@ -1,0 +1,12 @@
+<map id="com::avpkit::core::IMediaData" name="com::avpkit::core::IMediaData">
+<area shape="rect" id="node1" title="The parent class of all media objects than can be gotten from an IStream." alt="" coords="192,104,335,145"/>
+<area shape="rect" id="node3" href="$classcom_1_1avpkit_1_1core_1_1IAudioSamples.html" title="A set of raw (decoded) samples, plus a timestamp for when to play those samples relative to other ite..." alt="" coords="387,5,530,47"/>
+<area shape="rect" id="node5" href="$classcom_1_1avpkit_1_1core_1_1IMediaDataWrapper.html" title="This class wraps an IMediaData object, but then allows you to set new TimeStamps and TimeBases." alt="" coords="383,71,535,112"/>
+<area shape="rect" id="node7" href="$classcom_1_1avpkit_1_1core_1_1IPacket.html" title="Represents an encoded piece of data that can be placed in an IContainer for a given IStream of data." alt="" coords="387,136,530,177"/>
+<area shape="rect" id="node9" href="$classcom_1_1avpkit_1_1core_1_1IVideoPicture.html" title="Represents one raw (undecoded) picture in a video stream, plus a timestamp for when to display that v..." alt="" coords="387,201,530,243"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1ferry_1_1RefCounted.html" title="Parent of all Ferry objects – it mains reference counts in native code." alt="" coords="5,104,144,145"/>
+<area shape="rect" id="node4" href="$classcom_1_1avpkit_1_1core_1_1AudioSamples.html" title=" " alt="" coords="585,5,728,47"/>
+<area shape="rect" id="node6" href="$classcom_1_1avpkit_1_1core_1_1MediaDataWrapper.html" title=" " alt="" coords="583,71,731,112"/>
+<area shape="rect" id="node8" href="$classcom_1_1avpkit_1_1core_1_1Packet.html" title=" " alt="" coords="585,136,728,177"/>
+<area shape="rect" id="node10" href="$classcom_1_1avpkit_1_1core_1_1VideoPicture.html" title=" " alt="" coords="585,201,728,243"/>
+</map>

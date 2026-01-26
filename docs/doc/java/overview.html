@@ -1,0 +1,82 @@
+<html>
+<body>
+AVPKit: A toolkit, to encode, decode, and generally to proccess audio and video
+files in any way that you want.
+<h2>MediaTool: Decoding, Encoding and View Media Files the Easy Way</h2>
+The MediaTool API is a simple
+API that uses AVPKit behind the scenes, but allows you to extract
+pictures and audio from media files without being a complete AVPKit
+expert.
+<p>How simple?  Here's some code to open a MPEG video file,
+convert it to an Adobe Flash Video file:</p>
+<pre>
+IMediaReader reader = ToolFactory.newReader("input.mpg");
+reader.addListener(ToolFactory.newWriter("output.flv", reader));
+while (reader.readPacket() == null);
+</pre>
+<p> And if for some reason, you want access to the underlying
+AVPKit objects, it'll let you at them too.</p>
+<p>See {@link com.avpkit.mediatool} for the Javadoc</p>
+
+<h2>AVPKit: Decode, Encode and Experience Video</h2>
+Sometimes you need to get at the raw bits and bytes.  For that, there's
+AVPKit: A Java Library for processing (decoding, encoding, filtering) pretty much any Internet
+available audio or video file. See {@link com.avpkit.core}
+<p>This Java library is a wrapper around the excellent <a
+  href="http://ffmpeg.org"> FFMPEG</a> libav* libraries. It allows Java
+developers (after installing the Xuggler native libraries) to encode and
+decode video files, but in a very Java-like way (i.e. automatic garbage
+collection, and fewer ways to cause bad crashes).</p>
+<p>Read more about {@link com.avpkit.core the details here} or
+jump straight to the <a
+  href="{@docRoot}/src-html/com/avpkit/core/Converter.html">
+com.avpkit.core.Converter</a> program source code for an example of
+AVPKit converting a media file.</p>
+
+<h2>AVPKit IO: When you need your own IO</h2>
+A Java Library for allowing people to plug in custom data sources for
+AVPKit to use. See {@link com.avpkit.core.io}
+<p>AVPJit uses FFMPEG's libav libraries to do the encoding and
+decoding of fils. By default FFMPEG can read files, and some other
+protocols (like http), but it implements all IO itself.</p>
+<p>Fortunately FFMPEG comes with a way to extend the data sources it
+can read; unfortunately it's a call back mechanism. Still, the AVPKit
+IO library allows you to implement IO callbacks for FFMPEG in the
+language of your choice (Java) as opposed to native C code.</p>
+<p>See the {@link com.avpkit.core.io.FileProtocolHandler
+FileProtocolHandler} for a Java example of this (really just
+re-implements FFMPEG's file:// IO for illustration purposes).</p>
+<h2>Ferry: Bridging the Java / C++ Gap</h2>
+A set of Java classes for
+<i>ferrying</i>
+data to and from native code. See {@link com.xuggle.ferry}
+<p><a href="http://www.swig.org/">SWIG</a>, an excellent utility for
+wrapping native code for other languages does a lot of great things. But
+sometimes it can use some help, and that's where this library comes in.
+This library implements the reference-counting memory scheme (used by
+the {@link com.avpkit.core AVPKit} package) to allow native code to
+pass objects in to other languages and relatively seamlessly integrate
+with their garbage collection systems. It also provides mechanism for
+allocating memory from the other language (instead of the C++ heap) to
+help that language keep track of memory, mechanisms for logging in the
+other language, and mechanisms for allowing the other language to
+directly modify C++/C memory (if possible). Most people won't use this
+outside of the AVPKit library, but if you're curious, go digging. It
+relies HEAVILY on SWIG for a lot of the heavy lifting.
+<h1>Licensing</h1>
+<p>Our intention in open sourcing these libraries is to break down
+the walls of communication between people. To that end, a lot of these
+libraries deal with getting at raw data for different systems, and for
+helping people to share and create cool stuff using that data.</p>
+<p>That said, it is not our intent to encourage people to use these
+libraries for illegal purposes, and we explicitly encourage people to
+respect the rights of others when they use these libraries.</p>
+<p>All AVPKit Open Source Libraries are released under the
+<a href="https://www.gnu.org/licenses/lgpl-3.0.en.html"> GNU
+Lesser General Public License v3 (LGPL)</a>
+. See the COPYING file in each library for details.  However, depending
+on how you compile FFmpeg, AVPKit may become GPL (basically if you're
+making a GPL version of FFmpeg, then AVPKit is GPL as well).
+</p>
+</body>
+</html>

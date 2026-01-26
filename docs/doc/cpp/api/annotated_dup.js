@@ -1,0 +1,78 @@
+var annotated_dup =
+[
+    [ "com", "namespacecom.html", [
+      [ "avpkit", null, [
+        [ "core", "namespacecom_1_1avpkit_1_1core.html", [
+          [ "io", "namespacecom_1_1avpkit_1_1core_1_1io.html", [
+            [ "JavaURLProtocolHandler", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolHandler.html", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolHandler" ],
+            [ "JavaURLProtocolManager", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManager.html", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManager" ],
+            [ "JavaURLProtocolManagerFactory", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManagerFactory.html", "classcom_1_1avpkit_1_1core_1_1io_1_1JavaURLProtocolManagerFactory" ],
+            [ "StdioURLProtocolHandler", "classcom_1_1avpkit_1_1core_1_1io_1_1StdioURLProtocolHandler.html", "classcom_1_1avpkit_1_1core_1_1io_1_1StdioURLProtocolHandler" ],
+            [ "StdioURLProtocolManager", "classcom_1_1avpkit_1_1core_1_1io_1_1StdioURLProtocolManager.html", "classcom_1_1avpkit_1_1core_1_1io_1_1StdioURLProtocolManager" ],
+            [ "URLProtocolHandler", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolHandler.html", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolHandler" ],
+            [ "URLProtocolHandlerFactory", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolHandlerFactory.html", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolHandlerFactory" ],
+            [ "URLProtocolManager", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolManager.html", "classcom_1_1avpkit_1_1core_1_1io_1_1URLProtocolManager" ]
+          ] ],
+          [ "AudioResampler", "classcom_1_1avpkit_1_1core_1_1AudioResampler.html", "classcom_1_1avpkit_1_1core_1_1AudioResampler" ],
+          [ "AudioSamples", "classcom_1_1avpkit_1_1core_1_1AudioSamples.html", "classcom_1_1avpkit_1_1core_1_1AudioSamples" ],
+          [ "BufferSink", "classcom_1_1avpkit_1_1core_1_1BufferSink.html", "classcom_1_1avpkit_1_1core_1_1BufferSink" ],
+          [ "BufferSource", "classcom_1_1avpkit_1_1core_1_1BufferSource.html", "classcom_1_1avpkit_1_1core_1_1BufferSource" ],
+          [ "Codec", "classcom_1_1avpkit_1_1core_1_1Codec.html", "classcom_1_1avpkit_1_1core_1_1Codec" ],
+          [ "Container", "classcom_1_1avpkit_1_1core_1_1Container.html", "classcom_1_1avpkit_1_1core_1_1Container" ],
+          [ "ContainerFormat", "classcom_1_1avpkit_1_1core_1_1ContainerFormat.html", "classcom_1_1avpkit_1_1core_1_1ContainerFormat" ],
+          [ "Error", "classcom_1_1avpkit_1_1core_1_1Error.html", "classcom_1_1avpkit_1_1core_1_1Error" ],
+          [ "FilterChain", "classcom_1_1avpkit_1_1core_1_1FilterChain.html", "classcom_1_1avpkit_1_1core_1_1FilterChain" ],
+          [ "Global", "classcom_1_1avpkit_1_1core_1_1Global.html", null ],
+          [ "IAudioResampler", "classcom_1_1avpkit_1_1core_1_1IAudioResampler.html", "classcom_1_1avpkit_1_1core_1_1IAudioResampler" ],
+          [ "IAudioSamples", "classcom_1_1avpkit_1_1core_1_1IAudioSamples.html", "classcom_1_1avpkit_1_1core_1_1IAudioSamples" ],
+          [ "IBufferSink", "classcom_1_1avpkit_1_1core_1_1IBufferSink.html", "classcom_1_1avpkit_1_1core_1_1IBufferSink" ],
+          [ "IBufferSource", "classcom_1_1avpkit_1_1core_1_1IBufferSource.html", "classcom_1_1avpkit_1_1core_1_1IBufferSource" ],
+          [ "ICodec", "classcom_1_1avpkit_1_1core_1_1ICodec.html", "classcom_1_1avpkit_1_1core_1_1ICodec" ],
+          [ "IContainer", "classcom_1_1avpkit_1_1core_1_1IContainer.html", "classcom_1_1avpkit_1_1core_1_1IContainer" ],
+          [ "IContainerFormat", "classcom_1_1avpkit_1_1core_1_1IContainerFormat.html", "classcom_1_1avpkit_1_1core_1_1IContainerFormat" ],
+          [ "IError", "classcom_1_1avpkit_1_1core_1_1IError.html", "classcom_1_1avpkit_1_1core_1_1IError" ],
+          [ "IFilterChain", "classcom_1_1avpkit_1_1core_1_1IFilterChain.html", "classcom_1_1avpkit_1_1core_1_1IFilterChain" ],
+          [ "IIndexEntry", "classcom_1_1avpkit_1_1core_1_1IIndexEntry.html", "classcom_1_1avpkit_1_1core_1_1IIndexEntry" ],
+          [ "IMediaData", "classcom_1_1avpkit_1_1core_1_1IMediaData.html", "classcom_1_1avpkit_1_1core_1_1IMediaData" ],
+          [ "IMediaDataWrapper", "classcom_1_1avpkit_1_1core_1_1IMediaDataWrapper.html", "classcom_1_1avpkit_1_1core_1_1IMediaDataWrapper" ],
+          [ "IMediaFilter", "classcom_1_1avpkit_1_1core_1_1IMediaFilter.html", "classcom_1_1avpkit_1_1core_1_1IMediaFilter" ],
+          [ "IMetaData", "classcom_1_1avpkit_1_1core_1_1IMetaData.html", "classcom_1_1avpkit_1_1core_1_1IMetaData" ],
+          [ "IndexEntry", "classcom_1_1avpkit_1_1core_1_1IndexEntry.html", "classcom_1_1avpkit_1_1core_1_1IndexEntry" ],
+          [ "IPacket", "classcom_1_1avpkit_1_1core_1_1IPacket.html", "classcom_1_1avpkit_1_1core_1_1IPacket" ],
+          [ "IPixelFormat", "classcom_1_1avpkit_1_1core_1_1IPixelFormat.html", "classcom_1_1avpkit_1_1core_1_1IPixelFormat" ],
+          [ "IProperty", "classcom_1_1avpkit_1_1core_1_1IProperty.html", "classcom_1_1avpkit_1_1core_1_1IProperty" ],
+          [ "IRational", "classcom_1_1avpkit_1_1core_1_1IRational.html", "classcom_1_1avpkit_1_1core_1_1IRational" ],
+          [ "IStream", "classcom_1_1avpkit_1_1core_1_1IStream.html", "classcom_1_1avpkit_1_1core_1_1IStream" ],
+          [ "IStreamCoder", "classcom_1_1avpkit_1_1core_1_1IStreamCoder.html", "classcom_1_1avpkit_1_1core_1_1IStreamCoder" ],
+          [ "ITimeValue", "classcom_1_1avpkit_1_1core_1_1ITimeValue.html", "classcom_1_1avpkit_1_1core_1_1ITimeValue" ],
+          [ "IVideoPicture", "classcom_1_1avpkit_1_1core_1_1IVideoPicture.html", "classcom_1_1avpkit_1_1core_1_1IVideoPicture" ],
+          [ "IVideoResampler", "classcom_1_1avpkit_1_1core_1_1IVideoResampler.html", "classcom_1_1avpkit_1_1core_1_1IVideoResampler" ],
+          [ "MediaDataWrapper", "classcom_1_1avpkit_1_1core_1_1MediaDataWrapper.html", "classcom_1_1avpkit_1_1core_1_1MediaDataWrapper" ],
+          [ "MediaFilter", "classcom_1_1avpkit_1_1core_1_1MediaFilter.html", "classcom_1_1avpkit_1_1core_1_1MediaFilter" ],
+          [ "MetaData", "classcom_1_1avpkit_1_1core_1_1MetaData.html", "classcom_1_1avpkit_1_1core_1_1MetaData" ],
+          [ "Packet", "classcom_1_1avpkit_1_1core_1_1Packet.html", "classcom_1_1avpkit_1_1core_1_1Packet" ],
+          [ "PixelFormat", "classcom_1_1avpkit_1_1core_1_1PixelFormat.html", null ],
+          [ "Property", "classcom_1_1avpkit_1_1core_1_1Property.html", "classcom_1_1avpkit_1_1core_1_1Property" ],
+          [ "Rational", "classcom_1_1avpkit_1_1core_1_1Rational.html", "classcom_1_1avpkit_1_1core_1_1Rational" ],
+          [ "Stream", "classcom_1_1avpkit_1_1core_1_1Stream.html", "classcom_1_1avpkit_1_1core_1_1Stream" ],
+          [ "StreamCoder", "classcom_1_1avpkit_1_1core_1_1StreamCoder.html", "classcom_1_1avpkit_1_1core_1_1StreamCoder" ],
+          [ "TimeValue", "classcom_1_1avpkit_1_1core_1_1TimeValue.html", "classcom_1_1avpkit_1_1core_1_1TimeValue" ],
+          [ "VideoPicture", "classcom_1_1avpkit_1_1core_1_1VideoPicture.html", "classcom_1_1avpkit_1_1core_1_1VideoPicture" ],
+          [ "VideoResampler", "classcom_1_1avpkit_1_1core_1_1VideoResampler.html", "classcom_1_1avpkit_1_1core_1_1VideoResampler" ]
+        ] ],
+        [ "ferry", "namespacecom_1_1avpkit_1_1ferry.html", [
+          [ "AtomicInteger", "classcom_1_1avpkit_1_1ferry_1_1AtomicInteger.html", "classcom_1_1avpkit_1_1ferry_1_1AtomicInteger" ],
+          [ "Buffer", "classcom_1_1avpkit_1_1ferry_1_1Buffer.html", "classcom_1_1avpkit_1_1ferry_1_1Buffer" ],
+          [ "IBuffer", "classcom_1_1avpkit_1_1ferry_1_1IBuffer.html", "classcom_1_1avpkit_1_1ferry_1_1IBuffer" ],
+          [ "JNIHelper", "classcom_1_1avpkit_1_1ferry_1_1JNIHelper.html", "classcom_1_1avpkit_1_1ferry_1_1JNIHelper" ],
+          [ "JNIMemoryManager", "classcom_1_1avpkit_1_1ferry_1_1JNIMemoryManager.html", null ],
+          [ "Logger", "classcom_1_1avpkit_1_1ferry_1_1Logger.html", "classcom_1_1avpkit_1_1ferry_1_1Logger" ],
+          [ "LoggerStack", "classcom_1_1avpkit_1_1ferry_1_1LoggerStack.html", "classcom_1_1avpkit_1_1ferry_1_1LoggerStack" ],
+          [ "Mutex", "classcom_1_1avpkit_1_1ferry_1_1Mutex.html", "classcom_1_1avpkit_1_1ferry_1_1Mutex" ],
+          [ "RefCounted", "classcom_1_1avpkit_1_1ferry_1_1RefCounted.html", "classcom_1_1avpkit_1_1ferry_1_1RefCounted" ],
+          [ "RefCountedTester", "classcom_1_1avpkit_1_1ferry_1_1RefCountedTester.html", "classcom_1_1avpkit_1_1ferry_1_1RefCountedTester" ],
+          [ "RefPointer", "classcom_1_1avpkit_1_1ferry_1_1RefPointer.html", "classcom_1_1avpkit_1_1ferry_1_1RefPointer" ]
+        ] ]
+      ] ]
+    ] ]
+];

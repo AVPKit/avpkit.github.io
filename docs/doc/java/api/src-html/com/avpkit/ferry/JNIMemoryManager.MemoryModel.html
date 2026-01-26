@@ -1,0 +1,1547 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<main role="main">
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span><a id="line.1">/*******************************************************************************</a>
+<span class="sourceLineNo">002</span><a id="line.2"> * Copyright (c) 2024, 2026, Olivier Ayache.  All rights reserved.</a>
+<span class="sourceLineNo">003</span><a id="line.3"> *</a>
+<span class="sourceLineNo">004</span><a id="line.4"> * This file is part of AVPKit.</a>
+<span class="sourceLineNo">005</span><a id="line.5"> *</a>
+<span class="sourceLineNo">006</span><a id="line.6"> * AVPKit is free software: you can redistribute it and/or modify</a>
+<span class="sourceLineNo">007</span><a id="line.7"> * it under the terms of the GNU Lesser General Public License as published by</a>
+<span class="sourceLineNo">008</span><a id="line.8"> * the Free Software Foundation, either version 3 of the License, or</a>
+<span class="sourceLineNo">009</span><a id="line.9"> * (at your option) any later version.</a>
+<span class="sourceLineNo">010</span><a id="line.10"> *</a>
+<span class="sourceLineNo">011</span><a id="line.11"> * AVPKit is distributed in the hope that it will be useful,</a>
+<span class="sourceLineNo">012</span><a id="line.12"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</a>
+<span class="sourceLineNo">013</span><a id="line.13"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</a>
+<span class="sourceLineNo">014</span><a id="line.14"> * GNU Lesser General Public License for more details.</a>
+<span class="sourceLineNo">015</span><a id="line.15"> *</a>
+<span class="sourceLineNo">016</span><a id="line.16"> * You should have received a copy of the GNU Lesser General Public License</a>
+<span class="sourceLineNo">017</span><a id="line.17"> * along with AVPKit.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</a>
+<span class="sourceLineNo">018</span><a id="line.18"> *******************************************************************************/</a>
+<span class="sourceLineNo">019</span><a id="line.19"></a>
+<span class="sourceLineNo">020</span><a id="line.20">package com.avpkit.ferry;</a>
+<span class="sourceLineNo">021</span><a id="line.21"></a>
+<span class="sourceLineNo">022</span><a id="line.22"></a>
+<span class="sourceLineNo">023</span><a id="line.23">import java.lang.ref.ReferenceQueue;</a>
+<span class="sourceLineNo">024</span><a id="line.24">import java.nio.ByteBuffer;</a>
+<span class="sourceLineNo">025</span><a id="line.25">import java.util.concurrent.atomic.AtomicBoolean;</a>
+<span class="sourceLineNo">026</span><a id="line.26">import java.util.concurrent.locks.Lock;</a>
+<span class="sourceLineNo">027</span><a id="line.27">import java.util.concurrent.locks.ReentrantLock;</a>
+<span class="sourceLineNo">028</span><a id="line.28"></a>
+<span class="sourceLineNo">029</span><a id="line.29">import org.slf4j.Logger;</a>
+<span class="sourceLineNo">030</span><a id="line.30">import org.slf4j.LoggerFactory;</a>
+<span class="sourceLineNo">031</span><a id="line.31"></a>
+<span class="sourceLineNo">032</span><a id="line.32">/**</a>
+<span class="sourceLineNo">033</span><a id="line.33"> * Manages the native memory that Ferry objects allocate and destroy.</a>
+<span class="sourceLineNo">034</span><a id="line.34"> * &lt;p&gt;</a>
+<span class="sourceLineNo">035</span><a id="line.35"> * Native memory isn't nicely garbage collected like Java memory is, and</a>
+<span class="sourceLineNo">036</span><a id="line.36"> * managing it can be challenging to those not familiar with it. Ferry is all</a>
+<span class="sourceLineNo">037</span><a id="line.37"> * about making native objects behave nicely in Java, and in order to have Ferry</a>
+<span class="sourceLineNo">038</span><a id="line.38"> * make objects &lt;i&gt;look&lt;/i&gt; like Java objects, the {@link JNIMemoryManager} does</a>
+<span class="sourceLineNo">039</span><a id="line.39"> * some black magic to ensure native memory is released behind the scenes.</a>
+<span class="sourceLineNo">040</span><a id="line.40"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">041</span><a id="line.41"> * &lt;p&gt;</a>
+<span class="sourceLineNo">042</span><a id="line.42"> * To do this by default Ferry uses a Robust mechanism for ensuring native</a>
+<span class="sourceLineNo">043</span><a id="line.43"> * memory is released, but that comes at the expense of some Speed. This</a>
+<span class="sourceLineNo">044</span><a id="line.44"> * approach is tunable though.</a>
+<span class="sourceLineNo">045</span><a id="line.45"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">046</span><a id="line.46"> * &lt;p&gt;</a>
+<span class="sourceLineNo">047</span><a id="line.47"> * if you run a Java Profiler and see your application is spending a lot of time</a>
+<span class="sourceLineNo">048</span><a id="line.48"> * copying on incremental collections, or you need to eke out a few more</a>
+<span class="sourceLineNo">049</span><a id="line.49"> * microseconds of speed, or you're bored, then it's time to experiment with</a>
+<span class="sourceLineNo">050</span><a id="line.50"> * different {@link MemoryModel} configurations that Ferry supports by calling</a>
+<span class="sourceLineNo">051</span><a id="line.51"> * {@link #setMemoryModel(MemoryModel)}. This is pretty advanced stuff though,</a>
+<span class="sourceLineNo">052</span><a id="line.52"> * so be warned.</a>
+<span class="sourceLineNo">053</span><a id="line.53"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">054</span><a id="line.54"> * &lt;p&gt;</a>
+<span class="sourceLineNo">055</span><a id="line.55"> * Read {@link MemoryModel} for more.</a>
+<span class="sourceLineNo">056</span><a id="line.56"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">057</span><a id="line.57"> * </a>
+<span class="sourceLineNo">058</span><a id="line.58"> * @see MemoryModel</a>
+<span class="sourceLineNo">059</span><a id="line.59"> * @author aclarke</a>
+<span class="sourceLineNo">060</span><a id="line.60"> * </a>
+<span class="sourceLineNo">061</span><a id="line.61"> */</a>
+<span class="sourceLineNo">062</span><a id="line.62">public final class JNIMemoryManager</a>
+<span class="sourceLineNo">063</span><a id="line.63">{</a>
+<span class="sourceLineNo">064</span><a id="line.64">  /**</a>
+<span class="sourceLineNo">065</span><a id="line.65">   * The different types of native memory allocation models Ferry supports. &lt;h2&gt;</a>
+<span class="sourceLineNo">066</span><a id="line.66">   * Memory Model Performance Implications&lt;/h2&gt; Choosing the {@link MemoryModel}</a>
+<span class="sourceLineNo">067</span><a id="line.67">   * you use in Ferry libraries can have a big effect. Some models emphasize</a>
+<span class="sourceLineNo">068</span><a id="line.68">   * code that will work "as you expect" (Robustness), but sacrifice some</a>
+<span class="sourceLineNo">069</span><a id="line.69">   * execution speed to make that happen. Other models value speed first, and</a>
+<span class="sourceLineNo">070</span><a id="line.70">   * assume you know what you're doing and can manage your own memory.</a>
+<span class="sourceLineNo">071</span><a id="line.71">   * &lt;p&gt;</a>
+<span class="sourceLineNo">072</span><a id="line.72">   * In our experience the set of people who need robust software is larger than</a>
+<span class="sourceLineNo">073</span><a id="line.73">   * the set of people who need the (small) speed price paid, and so we default</a>
+<span class="sourceLineNo">074</span><a id="line.74">   * to the most robust model.</a>
+<span class="sourceLineNo">075</span><a id="line.75">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">076</span><a id="line.76">   * &lt;p&gt;</a>
+<span class="sourceLineNo">077</span><a id="line.77">   * Also in our experience, the set of people who really should just use the</a>
+<span class="sourceLineNo">078</span><a id="line.78">   * robust model, but instead think they need speed is much larger than the set</a>
+<span class="sourceLineNo">079</span><a id="line.79">   * of people who actually know what they're doing with java memory management,</a>
+<span class="sourceLineNo">080</span><a id="line.80">   * so please, &lt;strong&gt;we strongly recommend you start with a robust model and</a>
+<span class="sourceLineNo">081</span><a id="line.81">   * only change the {@link MemoryModel} if your performance testing shows you</a>
+<span class="sourceLineNo">082</span><a id="line.82">   * need speed.&lt;/strong&gt; Don't say we didn't warn you.</a>
+<span class="sourceLineNo">083</span><a id="line.83">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">084</span><a id="line.84">   * </a>
+<span class="sourceLineNo">085</span><a id="line.85">   * &lt;table&gt;</a>
+<span class="sourceLineNo">086</span><a id="line.86">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">087</span><a id="line.87">   * &lt;th&gt;Model&lt;/th&gt;</a>
+<span class="sourceLineNo">088</span><a id="line.88">   * &lt;th&gt;Robustness&lt;/th&gt;</a>
+<span class="sourceLineNo">089</span><a id="line.89">   * &lt;th&gt;Speed&lt;/th&gt;</a>
+<span class="sourceLineNo">090</span><a id="line.90">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">091</span><a id="line.91">   * </a>
+<span class="sourceLineNo">092</span><a id="line.92">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">093</span><a id="line.93">   * &lt;td&gt; {@link #JAVA_STANDARD_HEAP} (default)&lt;/td&gt;</a>
+<span class="sourceLineNo">094</span><a id="line.94">   * &lt;td&gt;+++++&lt;/td&gt;</a>
+<span class="sourceLineNo">095</span><a id="line.95">   * &lt;td&gt;+&lt;/td&gt;</a>
+<span class="sourceLineNo">096</span><a id="line.96">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">097</span><a id="line.97">   * </a>
+<span class="sourceLineNo">098</span><a id="line.98">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">099</span><a id="line.99">   * &lt;td&gt; {@link #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}&lt;/td&gt;</a>
+<span class="sourceLineNo">100</span><a id="line.100">   * &lt;td&gt;+++&lt;/td&gt;</a>
+<span class="sourceLineNo">101</span><a id="line.101">   * &lt;td&gt;++&lt;/td&gt;</a>
+<span class="sourceLineNo">102</span><a id="line.102">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">103</span><a id="line.103">   * </a>
+<span class="sourceLineNo">104</span><a id="line.104">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">105</span><a id="line.105">   * &lt;td&gt; {@link #NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}&lt;/td&gt;</a>
+<span class="sourceLineNo">106</span><a id="line.106">   * &lt;td&gt;+++&lt;/td&gt;</a>
+<span class="sourceLineNo">107</span><a id="line.107">   * &lt;td&gt;+++&lt;/td&gt;</a>
+<span class="sourceLineNo">108</span><a id="line.108">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">109</span><a id="line.109">   * </a>
+<span class="sourceLineNo">110</span><a id="line.110">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">111</span><a id="line.111">   * &lt;td&gt; {@link #JAVA_DIRECT_BUFFERS} (not recommended)&lt;/td&gt;</a>
+<span class="sourceLineNo">112</span><a id="line.112">   * &lt;td&gt;+&lt;/td&gt;</a>
+<span class="sourceLineNo">113</span><a id="line.113">   * &lt;td&gt;++++&lt;/td&gt;</a>
+<span class="sourceLineNo">114</span><a id="line.114">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">115</span><a id="line.115">   * </a>
+<span class="sourceLineNo">116</span><a id="line.116">   * &lt;tr&gt;</a>
+<span class="sourceLineNo">117</span><a id="line.117">   * &lt;td&gt; {@link #NATIVE_BUFFERS}&lt;/td&gt;</a>
+<span class="sourceLineNo">118</span><a id="line.118">   * &lt;td&gt;+&lt;/td&gt;</a>
+<span class="sourceLineNo">119</span><a id="line.119">   * &lt;td&gt;+++++&lt;/td&gt;</a>
+<span class="sourceLineNo">120</span><a id="line.120">   * &lt;/tr&gt;</a>
+<span class="sourceLineNo">121</span><a id="line.121">   * </a>
+<span class="sourceLineNo">122</span><a id="line.122">   * &lt;/table&gt;</a>
+<span class="sourceLineNo">123</span><a id="line.123">   * &lt;h2&gt;What is &amp;quot;Robustness&amp;quot;?&lt;/h2&gt;</a>
+<span class="sourceLineNo">124</span><a id="line.124">   * &lt;p&gt;</a>
+<span class="sourceLineNo">125</span><a id="line.125">   * Ferry objects have to allocate native memory to do their job -- it's the</a>
+<span class="sourceLineNo">126</span><a id="line.126">   * reason for Ferry's existence. And native memory management is very</a>
+<span class="sourceLineNo">127</span><a id="line.127">   * different than Java memory management (for example, native C++ code doesn't</a>
+<span class="sourceLineNo">128</span><a id="line.128">   * have a garbage collector). To make things easier for our Java friends,</a>
+<span class="sourceLineNo">129</span><a id="line.129">   * Ferry tries to make Ferry objects look like Java objects.</a>
+<span class="sourceLineNo">130</span><a id="line.130">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">131</span><a id="line.131">   * &lt;p&gt;</a>
+<span class="sourceLineNo">132</span><a id="line.132">   * Which leads us to robustness. The more of these criteria we can hit with a</a>
+<span class="sourceLineNo">133</span><a id="line.133">   * {@link MemoryModel} the more robust it is.</a>
+<span class="sourceLineNo">134</span><a id="line.134">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">135</span><a id="line.135">   * &lt;ol&gt;</a>
+<span class="sourceLineNo">136</span><a id="line.136">   * </a>
+<span class="sourceLineNo">137</span><a id="line.137">   * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Calls to &lt;code&gt;make()&lt;/code&gt; must</a>
+<span class="sourceLineNo">138</span><a id="line.138">   * correctly allocate memory that can be accessed from native or Java code and</a>
+<span class="sourceLineNo">139</span><a id="line.139">   * calls to &lt;code&gt;delete()&lt;/code&gt; must release that memory immediately.&lt;/li&gt;</a>
+<span class="sourceLineNo">140</span><a id="line.140">   * </a>
+<span class="sourceLineNo">141</span><a id="line.141">   * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Objects no longer referenced in Java</a>
+<span class="sourceLineNo">142</span><a id="line.142">   * should have their underlying native memory released in a timely fashion.&lt;/li&gt;</a>
+<span class="sourceLineNo">143</span><a id="line.143">   * </a>
+<span class="sourceLineNo">144</span><a id="line.144">   * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: New allocation in low memory conditions</a>
+<span class="sourceLineNo">145</span><a id="line.145">   * should first have the Java garbage collector release any old objects.&lt;/li&gt;</a>
+<span class="sourceLineNo">146</span><a id="line.146">   * </a>
+<span class="sourceLineNo">147</span><a id="line.147">   * &lt;/ol&gt;</a>
+<span class="sourceLineNo">148</span><a id="line.148">   * &lt;h2&gt;What is &amp;quot;Speed&amp;quot;?&lt;/h2&gt;</a>
+<span class="sourceLineNo">149</span><a id="line.149">   * &lt;p&gt;</a>
+<span class="sourceLineNo">150</span><a id="line.150">   * Speed is how fast code executes under normal operating conditions. This is</a>
+<span class="sourceLineNo">151</span><a id="line.151">   * more subjective than it sounds, as how do you define normal operation</a>
+<span class="sourceLineNo">152</span><a id="line.152">   * conditions? But in general, we define it as &amp;quot;generally plenty of heap</a>
+<span class="sourceLineNo">153</span><a id="line.153">   * space available&amp;quot;</a>
+<span class="sourceLineNo">154</span><a id="line.154">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">155</span><a id="line.155">   * </a>
+<span class="sourceLineNo">156</span><a id="line.156">   * &lt;h2&gt;How Does JNIMemoryManager Work?&lt;/h2&gt;</a>
+<span class="sourceLineNo">157</span><a id="line.157">   * &lt;p&gt;</a>
+<span class="sourceLineNo">158</span><a id="line.158">   * Every object that is exposed from native code inherits from</a>
+<span class="sourceLineNo">159</span><a id="line.159">   * {@link com.avpkit.ferry.RefCounted}.</a>
+<span class="sourceLineNo">160</span><a id="line.160">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">161</span><a id="line.161">   * &lt;p&gt;</a>
+<span class="sourceLineNo">162</span><a id="line.162">   * Ferry works by implementing a reference-counted memory management scheme</a>
+<span class="sourceLineNo">163</span><a id="line.163">   * in native code that is then manipulated from Java so you don't have to</a>
+<span class="sourceLineNo">164</span><a id="line.164">   * (usually) think about when to release native memory. Every time an object</a>
+<span class="sourceLineNo">165</span><a id="line.165">   * is created in native memory it has its reference count incremented by one;</a>
+<span class="sourceLineNo">166</span><a id="line.166">   * and everywhere inside the code we take care to release a reference when</a>
+<span class="sourceLineNo">167</span><a id="line.167">   * we're done.</a>
+<span class="sourceLineNo">168</span><a id="line.168">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">169</span><a id="line.169">   * &lt;p&gt;</a>
+<span class="sourceLineNo">170</span><a id="line.170">   * This maps nicely to the Java model of memory management, but with the</a>
+<span class="sourceLineNo">171</span><a id="line.171">   * benefit that Java does all the releasing behind the scenes. When you pass</a>
+<span class="sourceLineNo">172</span><a id="line.172">   * an object from Native code to Java, Ferry makes sure it has a reference</a>
+<span class="sourceLineNo">173</span><a id="line.173">   * count incremented, and then when the Java Virtual Machine collects the</a>
+<span class="sourceLineNo">174</span><a id="line.174">   * instance, Ferry automatically decrements the reference it in native code.</a>
+<span class="sourceLineNo">175</span><a id="line.175">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">176</span><a id="line.176">   * &lt;p&gt;</a>
+<span class="sourceLineNo">177</span><a id="line.177">   * In fact, in theory all you need to do is make a finalize() method on the</a>
+<span class="sourceLineNo">178</span><a id="line.178">   * Java object that decrements the reference count in the native code and</a>
+<span class="sourceLineNo">179</span><a id="line.179">   * everyone goes home happy.</a>
+<span class="sourceLineNo">180</span><a id="line.180">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">181</span><a id="line.181">   * &lt;p&gt;</a>
+<span class="sourceLineNo">182</span><a id="line.182">   * So far so good, but it brings up a big problem:</a>
+<span class="sourceLineNo">183</span><a id="line.183">   * &lt;ul&gt;</a>
+<span class="sourceLineNo">184</span><a id="line.184">   * &lt;li&gt;</a>
+<span class="sourceLineNo">185</span><a id="line.185">   * Turns out that video, audio and packets can be fairly large objects. For</a>
+<span class="sourceLineNo">186</span><a id="line.186">   * example, a 640x480 YUV420P decoded video frame object will take up around</a>
+<span class="sourceLineNo">187</span><a id="line.187">   * 500K of memory. If those are allocated from native code, Java has no idea</a>
+<span class="sourceLineNo">188</span><a id="line.188">   * it got allocated; in fact the corresponding Java object will seem to only</a>
+<span class="sourceLineNo">189</span><a id="line.189">   * take up a few bytes of memory. Keep enough video frames around, and your</a>
+<span class="sourceLineNo">190</span><a id="line.190">   * Java process (that you expect to run in 64 Megs of heap memory) starts to</a>
+<span class="sourceLineNo">191</span><a id="line.191">   * consume large amounts of native memory. Not good.&lt;/li&gt;</a>
+<span class="sourceLineNo">192</span><a id="line.192">   * &lt;li&gt;</a>
+<span class="sourceLineNo">193</span><a id="line.193">   * The Java virtual machine only collects garbage when it thinks it needs the</a>
+<span class="sourceLineNo">194</span><a id="line.194">   * space. However, because native code allocated the large chunks of memory,</a>
+<span class="sourceLineNo">195</span><a id="line.195">   * Java doesn't know that memory is being used. So it doesn't collect unused</a>
+<span class="sourceLineNo">196</span><a id="line.196">   * references, which if Ferry just used "finalize()" would mean that lots of</a>
+<span class="sourceLineNo">197</span><a id="line.197">   * unused memory might exist that clog up your system.&lt;/li&gt;</a>
+<span class="sourceLineNo">198</span><a id="line.198">   * &lt;li&gt;</a>
+<span class="sourceLineNo">199</span><a id="line.199">   * Lastly, even if Java does do a garbage collection, it must make sure that</a>
+<span class="sourceLineNo">200</span><a id="line.200">   * all methods that have a finalize() method are first collected and put in a</a>
+<span class="sourceLineNo">201</span><a id="line.201">   * "safe-area" that awaits a second collection. On the second collection call,</a>
+<span class="sourceLineNo">202</span><a id="line.202">   * it starts calling finalize() on all those objects, but (don't ask why just</a>
+<span class="sourceLineNo">203</span><a id="line.203">   * trust us) if needs to dedicate a separate finalizer thread to this process.</a>
+<span class="sourceLineNo">204</span><a id="line.204">   * The result of this is if you allocate a lot of objects quickly, the</a>
+<span class="sourceLineNo">205</span><a id="line.205">   * finalizer thread can start to fall very far behind.&lt;/li&gt;</a>
+<span class="sourceLineNo">206</span><a id="line.206">   * &lt;/ul&gt;</a>
+<span class="sourceLineNo">207</span><a id="line.207">   * Now, aren't you sorry you asked. Here's the good news; The</a>
+<span class="sourceLineNo">208</span><a id="line.208">   * {@link com.avpkit.ferry.RefCounted} implementation solves all these</a>
+<span class="sourceLineNo">209</span><a id="line.209">   * problems for you.</a>
+<span class="sourceLineNo">210</span><a id="line.210">   * &lt;p&gt;</a>
+<span class="sourceLineNo">211</span><a id="line.211">   * How you ask:</a>
+<span class="sourceLineNo">212</span><a id="line.212">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">213</span><a id="line.213">   * &lt;ul&gt;</a>
+<span class="sourceLineNo">214</span><a id="line.214">   * &lt;li&gt;</a>
+<span class="sourceLineNo">215</span><a id="line.215">   * We use Java Weak References to determine if a native object is no longer</a>
+<span class="sourceLineNo">216</span><a id="line.216">   * used in Java. Ferry objects allocated from native code do not finalizers.</a>
+<span class="sourceLineNo">217</span><a id="line.217">   * &lt;/li&gt;</a>
+<span class="sourceLineNo">218</span><a id="line.218">   * &lt;li&gt;</a>
+<span class="sourceLineNo">219</span><a id="line.219">   * Then every-time you create a new Ferry object, we first make sure we do a</a>
+<span class="sourceLineNo">220</span><a id="line.220">   * mini-collection of all unused Ferry objects and release that native</a>
+<span class="sourceLineNo">221</span><a id="line.221">   * memory.&lt;/li&gt;</a>
+<span class="sourceLineNo">222</span><a id="line.222">   * &lt;li&gt;</a>
+<span class="sourceLineNo">223</span><a id="line.223">   * Then, each Ferry object also maintains a reference to another object that</a>
+<span class="sourceLineNo">224</span><a id="line.224">   * DOES have a finalize() method and the only thing that method does is make</a>
+<span class="sourceLineNo">225</span><a id="line.225">   * sure another mini-collection is done. That way we can make sure memory is</a>
+<span class="sourceLineNo">226</span><a id="line.226">   * freed even if you never do another Ferry allocation.&lt;/li&gt;</a>
+<span class="sourceLineNo">227</span><a id="line.227">   * &lt;li&gt;</a>
+<span class="sourceLineNo">228</span><a id="line.228">   * Lastly, we make sure that whenever we need large chunks of memory (for</a>
+<span class="sourceLineNo">229</span><a id="line.229">   * IPacket, IFrame and IAudioSamples interfaces) we can allocate those objects</a>
+<span class="sourceLineNo">230</span><a id="line.230">   * from Java, so Java ALWAYS knows just how much memory it's using.&lt;/li&gt;</a>
+<span class="sourceLineNo">231</span><a id="line.231">   * &lt;/ul&gt;</a>
+<span class="sourceLineNo">232</span><a id="line.232">   * The end result: you usually don't need to worry. &lt;/p&gt;</a>
+<span class="sourceLineNo">233</span><a id="line.233">   * &lt;p&gt;</a>
+<span class="sourceLineNo">234</span><a id="line.234">   * In the event you need to manage memory more expicitly, every Ferry object</a>
+<span class="sourceLineNo">235</span><a id="line.235">   * has a "copyReference()" method that will create a new Java object that</a>
+<span class="sourceLineNo">236</span><a id="line.236">   * points to the same underlying native object.</a>
+<span class="sourceLineNo">237</span><a id="line.237">   * &lt;p&gt;</a>
+<span class="sourceLineNo">238</span><a id="line.238">   * And In the unlikely event you want to control EXACTLY when a native object</a>
+<span class="sourceLineNo">239</span><a id="line.239">   * is released, each Ferry object has a {@link RefCounted#delete()} method</a>
+<span class="sourceLineNo">240</span><a id="line.240">   * that you can use. Once you call "delete()", you must ENSURE your object is</a>
+<span class="sourceLineNo">241</span><a id="line.241">   * never referenced again from that Java object -- Ferry tries to help you</a>
+<span class="sourceLineNo">242</span><a id="line.242">   * avoid crashes if you accidentally use an object after deletion but on this</a>
+<span class="sourceLineNo">243</span><a id="line.243">   * but we cannot offer 100% protection (specifically if another thread is</a>
+<span class="sourceLineNo">244</span><a id="line.244">   * accessing that object EXACTLY when you {@link RefCounted#delete()} it). If</a>
+<span class="sourceLineNo">245</span><a id="line.245">   * you don't call {@link RefCounted#delete()}, we will call it at some point</a>
+<span class="sourceLineNo">246</span><a id="line.246">   * in the future, but you can't depend on when (and depending on the</a>
+<span class="sourceLineNo">247</span><a id="line.247">   * {@link MemoryModel} you are using, we may not be able to do it promptly).</a>
+<span class="sourceLineNo">248</span><a id="line.248">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">249</span><a id="line.249">   * &lt;h2&gt;What does all of this mean?&lt;/h2&gt;</a>
+<span class="sourceLineNo">250</span><a id="line.250">   * &lt;p&gt;</a>
+<span class="sourceLineNo">251</span><a id="line.251">   * Well, it means if you're first writing code, don't worry about this. If</a>
+<span class="sourceLineNo">252</span><a id="line.252">   * you're instead trying to optimize for performance, first measure where your</a>
+<span class="sourceLineNo">253</span><a id="line.253">   * problems are, and if fingers are pointing at allocation in Ferry then start</a>
+<span class="sourceLineNo">254</span><a id="line.254">   * trying different models.</a>
+<span class="sourceLineNo">255</span><a id="line.255">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">256</span><a id="line.256">   * &lt;p&gt;</a>
+<span class="sourceLineNo">257</span><a id="line.257">   * But before you switch models, be sure to read the caveats and restrictions</a>
+<span class="sourceLineNo">258</span><a id="line.258">   * on each of the non {@link #JAVA_STANDARD_HEAP} models, and make sure you</a>
+<span class="sourceLineNo">259</span><a id="line.259">   * have a good understanding of how &lt;a</a>
+<span class="sourceLineNo">260</span><a id="line.260">   * href="http://java.sun.com/docs/hotspot/gc5.0/gc_tuning_5.html"&gt; Java</a>
+<span class="sourceLineNo">261</span><a id="line.261">   * Garbage Collection&lt;/a&gt; works.</a>
+<span class="sourceLineNo">262</span><a id="line.262">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">263</span><a id="line.263">   * </a>
+<span class="sourceLineNo">264</span><a id="line.264">   * @author aclarke</a>
+<span class="sourceLineNo">265</span><a id="line.265">   * </a>
+<span class="sourceLineNo">266</span><a id="line.266">   */</a>
+<span class="sourceLineNo">267</span><a id="line.267">  public enum MemoryModel</a>
+<span class="sourceLineNo">268</span><a id="line.268">  {</a>
+<span class="sourceLineNo">269</span><a id="line.269">    /**</a>
+<span class="sourceLineNo">270</span><a id="line.270">     * &lt;p&gt;</a>
+<span class="sourceLineNo">271</span><a id="line.271">     * Large memory blocks are allocated in Java byte[] arrays, and passed back</a>
+<span class="sourceLineNo">272</span><a id="line.272">     * into native code. Releasing of underlying native resources happens behind</a>
+<span class="sourceLineNo">273</span><a id="line.273">     * the scenes with no management required on the programmer's part.</a>
+<span class="sourceLineNo">274</span><a id="line.274">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">275</span><a id="line.275">     * &lt;/p&gt; &lt;h2&gt;Speed&lt;/h2&gt;</a>
+<span class="sourceLineNo">276</span><a id="line.276">     * &lt;p&gt;</a>
+<span class="sourceLineNo">277</span><a id="line.277">     * This is the slowest model available.</a>
+<span class="sourceLineNo">278</span><a id="line.278">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">279</span><a id="line.279">     * &lt;p&gt;</a>
+<span class="sourceLineNo">280</span><a id="line.280">     * The main decrease in speed occurs for medium-life-span objects. Short</a>
+<span class="sourceLineNo">281</span><a id="line.281">     * life-span objects (objects that die during the life-span of an</a>
+<span class="sourceLineNo">282</span><a id="line.282">     * incremental collection) are relatively efficient. Once an object makes it</a>
+<span class="sourceLineNo">283</span><a id="line.283">     * into the Tenured generation in Java, then unnecessary copying stops until</a>
+<span class="sourceLineNo">284</span><a id="line.284">     * the next full collection.</a>
+<span class="sourceLineNo">285</span><a id="line.285">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">286</span><a id="line.286">     * &lt;p&gt;</a>
+<span class="sourceLineNo">287</span><a id="line.287">     * However while in the Eden generation but surviving between incremental</a>
+<span class="sourceLineNo">288</span><a id="line.288">     * collections, large native buffers may get copied many times</a>
+<span class="sourceLineNo">289</span><a id="line.289">     * unnecessarily. This copying can have a significant performance impact.</a>
+<span class="sourceLineNo">290</span><a id="line.290">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">291</span><a id="line.291">     * &lt;h2&gt;Robustness&lt;/h2&gt;</a>
+<span class="sourceLineNo">292</span><a id="line.292">     * &lt;ol&gt;</a>
+<span class="sourceLineNo">293</span><a id="line.293">     * </a>
+<span class="sourceLineNo">294</span><a id="line.294">     * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Works as expected.&lt;/li&gt;</a>
+<span class="sourceLineNo">295</span><a id="line.295">     * </a>
+<span class="sourceLineNo">296</span><a id="line.296">     * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Released either when</a>
+<span class="sourceLineNo">297</span><a id="line.297">     * &lt;code&gt;delete()&lt;/code&gt; is called, the item is marked for collection, or</a>
+<span class="sourceLineNo">298</span><a id="line.298">     * we're in Low Memory conditions and the item is unused.&lt;/li&gt;</a>
+<span class="sourceLineNo">299</span><a id="line.299">     * </a>
+<span class="sourceLineNo">300</span><a id="line.300">     * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: Very strong. In this model Java always</a>
+<span class="sourceLineNo">301</span><a id="line.301">     * knows exactly how much native heap space is being used, and can trigger</a>
+<span class="sourceLineNo">302</span><a id="line.302">     * collections at the right time.&lt;/li&gt;</a>
+<span class="sourceLineNo">303</span><a id="line.303">     * </a>
+<span class="sourceLineNo">304</span><a id="line.304">     * &lt;/ol&gt;</a>
+<span class="sourceLineNo">305</span><a id="line.305">     * </a>
+<span class="sourceLineNo">306</span><a id="line.306">     * &lt;h2&gt;Tuning Tips&lt;/h2&gt;</a>
+<span class="sourceLineNo">307</span><a id="line.307">     * &lt;p&gt;</a>
+<span class="sourceLineNo">308</span><a id="line.308">     * When using this model, these tips may increase performance, although in</a>
+<span class="sourceLineNo">309</span><a id="line.309">     * some situations, may instead decrease your performance. Always measure.</a>
+<span class="sourceLineNo">310</span><a id="line.310">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">311</span><a id="line.311">     * &lt;ul&gt;</a>
+<span class="sourceLineNo">312</span><a id="line.312">     * &lt;li&gt;Try different garbage collectors in Java. To try the parallel</a>
+<span class="sourceLineNo">313</span><a id="line.313">     * incremental collector, start your Java process with: these options:</a>
+<span class="sourceLineNo">314</span><a id="line.314">     * </a>
+<span class="sourceLineNo">315</span><a id="line.315">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">316</span><a id="line.316">     * -XX:+UseParallelGC</a>
+<span class="sourceLineNo">317</span><a id="line.317">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">318</span><a id="line.318">     * </a>
+<span class="sourceLineNo">319</span><a id="line.319">     * The concurrent garbage collector works well too. To use that pass these</a>
+<span class="sourceLineNo">320</span><a id="line.320">     * options to java on startup:</a>
+<span class="sourceLineNo">321</span><a id="line.321">     * </a>
+<span class="sourceLineNo">322</span><a id="line.322">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">323</span><a id="line.323">     * -XX:+UseConcMarkSweepGC -XX:+UseParNewGC</a>
+<span class="sourceLineNo">324</span><a id="line.324">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">325</span><a id="line.325">     * </a>
+<span class="sourceLineNo">326</span><a id="line.326">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">327</span><a id="line.327">     * &lt;li&gt;If you are not re-using objects across Ferry calls, ensure your</a>
+<span class="sourceLineNo">328</span><a id="line.328">     * objects are short-lived; null out references when done.&lt;/li&gt;</a>
+<span class="sourceLineNo">329</span><a id="line.329">     * &lt;li&gt;Potentially try caching objects and reusing large objects across</a>
+<span class="sourceLineNo">330</span><a id="line.330">     * multiple calls -- this may give those objects time to move into the</a>
+<span class="sourceLineNo">331</span><a id="line.331">     * Tenured generation and reduce the copying overhead.&lt;/li&gt;</a>
+<span class="sourceLineNo">332</span><a id="line.332">     * &lt;li&gt;Explicitly manage Ferry memory yourself by calling</a>
+<span class="sourceLineNo">333</span><a id="line.333">     * &lt;code&gt;delete()&lt;/code&gt; on every {@link RefCounted} object when done with</a>
+<span class="sourceLineNo">334</span><a id="line.334">     * your objects to let Java know it doesn't need to copy the item across a</a>
+<span class="sourceLineNo">335</span><a id="line.335">     * collection. You can also use &lt;code&gt;copyReference()&lt;/code&gt; to get a new</a>
+<span class="sourceLineNo">336</span><a id="line.336">     * Java version of the same Ferry object that you can pass to another thread</a>
+<span class="sourceLineNo">337</span><a id="line.337">     * if you don't know when &lt;code&gt;delete()&lt;/code&gt; can be safely called.&lt;/li&gt;</a>
+<span class="sourceLineNo">338</span><a id="line.338">     * </a>
+<span class="sourceLineNo">339</span><a id="line.339">     * &lt;li&gt;Try a different {@link MemoryModel}.&lt;/li&gt;</a>
+<span class="sourceLineNo">340</span><a id="line.340">     * &lt;/ul&gt;</a>
+<span class="sourceLineNo">341</span><a id="line.341">     */</a>
+<span class="sourceLineNo">342</span><a id="line.342">    JAVA_STANDARD_HEAP(0),</a>
+<span class="sourceLineNo">343</span><a id="line.343"></a>
+<span class="sourceLineNo">344</span><a id="line.344">    /**</a>
+<span class="sourceLineNo">345</span><a id="line.345">     * Large memory blocks are allocated as Direct {@link ByteBuffer} objects</a>
+<span class="sourceLineNo">346</span><a id="line.346">     * (as returned from {@link ByteBuffer#allocateDirect(int)}).</a>
+<span class="sourceLineNo">347</span><a id="line.347">     * &lt;p&gt;</a>
+<span class="sourceLineNo">348</span><a id="line.348">     * This model is not recommended. It is faster than</a>
+<span class="sourceLineNo">349</span><a id="line.349">     * {@link #JAVA_STANDARD_HEAP}, but because of how Sun implements direct</a>
+<span class="sourceLineNo">350</span><a id="line.350">     * buffers, it works poorly in low memory conditions. This model has all the</a>
+<span class="sourceLineNo">351</span><a id="line.351">     * caveats of the {@link #NATIVE_BUFFERS} model, but allocation is slightly</a>
+<span class="sourceLineNo">352</span><a id="line.352">     * slower.</a>
+<span class="sourceLineNo">353</span><a id="line.353">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">354</span><a id="line.354">     * &lt;h2&gt;Speed&lt;/h2&gt;</a>
+<span class="sourceLineNo">355</span><a id="line.355">     * &lt;p&gt;</a>
+<span class="sourceLineNo">356</span><a id="line.356">     * This is the 2nd fastest model available. In tests it is generally 20-30%</a>
+<span class="sourceLineNo">357</span><a id="line.357">     * faster than the {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">358</span><a id="line.358">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">359</span><a id="line.359">     * </a>
+<span class="sourceLineNo">360</span><a id="line.360">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">361</span><a id="line.361">     * &lt;p&gt;</a>
+<span class="sourceLineNo">362</span><a id="line.362">     * It is using Java to allocate direct memory, which is slightly slower than</a>
+<span class="sourceLineNo">363</span><a id="line.363">     * using {@link #NATIVE_BUFFERS}, but much faster than using the</a>
+<span class="sourceLineNo">364</span><a id="line.364">     * {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">365</span><a id="line.365">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">366</span><a id="line.366">     * &lt;p&gt;</a>
+<span class="sourceLineNo">367</span><a id="line.367">     * The downside is that for high-performance applications, you may need to</a>
+<span class="sourceLineNo">368</span><a id="line.368">     * explicitly manage {@link RefCounted} object life-cycles with</a>
+<span class="sourceLineNo">369</span><a id="line.369">     * {@link RefCounted#delete()} to ensure direct memory is released in a</a>
+<span class="sourceLineNo">370</span><a id="line.370">     * timely manner.</a>
+<span class="sourceLineNo">371</span><a id="line.371">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">372</span><a id="line.372">     * &lt;h2&gt;Robustness&lt;/h2&gt;</a>
+<span class="sourceLineNo">373</span><a id="line.373">     * &lt;ol&gt;</a>
+<span class="sourceLineNo">374</span><a id="line.374">     * </a>
+<span class="sourceLineNo">375</span><a id="line.375">     * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Weak. Java controls allocations of</a>
+<span class="sourceLineNo">376</span><a id="line.376">     * direct memory from a separate heap (yet another one), and has an</a>
+<span class="sourceLineNo">377</span><a id="line.377">     * additional tuning option to set that. By default on most JVMs, this heap</a>
+<span class="sourceLineNo">378</span><a id="line.378">     * size is set to 64mb which is very low for video processing (queue up 100</a>
+<span class="sourceLineNo">379</span><a id="line.379">     * images and see what we mean).&lt;/li&gt;</a>
+<span class="sourceLineNo">380</span><a id="line.380">     * </a>
+<span class="sourceLineNo">381</span><a id="line.381">     * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Released either when</a>
+<span class="sourceLineNo">382</span><a id="line.382">     * &lt;code&gt;delete()&lt;/code&gt; is called, or when the item is marked for</a>
+<span class="sourceLineNo">383</span><a id="line.383">     * collection&lt;/li&gt;</a>
+<span class="sourceLineNo">384</span><a id="line.384">     * </a>
+<span class="sourceLineNo">385</span><a id="line.385">     * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: Weak. In this model Java knows how much</a>
+<span class="sourceLineNo">386</span><a id="line.386">     * &lt;strong&gt;direct&lt;/strong&gt; memory it has allocated, but it does not use the</a>
+<span class="sourceLineNo">387</span><a id="line.387">     * size of the Direct Heap to influence when it collects the normal</a>
+<span class="sourceLineNo">388</span><a id="line.388">     * non-direct Java Heap -- and our allocation scheme depends on normal Java</a>
+<span class="sourceLineNo">389</span><a id="line.389">     * Heap collection. Therefore it can fail to run collections in a timely</a>
+<span class="sourceLineNo">390</span><a id="line.390">     * manner because it thinks the standard heap has plenty of space to grow.</a>
+<span class="sourceLineNo">391</span><a id="line.391">     * This may cause failures.&lt;/li&gt;</a>
+<span class="sourceLineNo">392</span><a id="line.392">     * </a>
+<span class="sourceLineNo">393</span><a id="line.393">     * &lt;/ol&gt;</a>
+<span class="sourceLineNo">394</span><a id="line.394">     * </a>
+<span class="sourceLineNo">395</span><a id="line.395">     * &lt;h2&gt;Tuning Tips&lt;/h2&gt;</a>
+<span class="sourceLineNo">396</span><a id="line.396">     * &lt;p&gt;</a>
+<span class="sourceLineNo">397</span><a id="line.397">     * When using this model, these tips may increase performance, although in</a>
+<span class="sourceLineNo">398</span><a id="line.398">     * some situations, may instead decrease performance. Always measure.</a>
+<span class="sourceLineNo">399</span><a id="line.399">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">400</span><a id="line.400">     * &lt;ul&gt;</a>
+<span class="sourceLineNo">401</span><a id="line.401">     * &lt;li&gt;Increase the size of Sun's Java's direct buffer heap. Sun's Java</a>
+<span class="sourceLineNo">402</span><a id="line.402">     * implementation has an artificially low default separate heap for direct</a>
+<span class="sourceLineNo">403</span><a id="line.403">     * buffers (64mb). To make it higher pass this option to Java at startup:</a>
+<span class="sourceLineNo">404</span><a id="line.404">     * </a>
+<span class="sourceLineNo">405</span><a id="line.405">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">406</span><a id="line.406">     * -XX:MaxDirectMemorySize=&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">407</span><a id="line.407">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">408</span><a id="line.408">     * </a>
+<span class="sourceLineNo">409</span><a id="line.409">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">410</span><a id="line.410">     * &lt;li&gt;Paradoxically, try decreasing the size of your Java Heap if you get</a>
+<span class="sourceLineNo">411</span><a id="line.411">     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native</a>
+<span class="sourceLineNo">412</span><a id="line.412">     * memory have a small proxy object representing them in the Java Heap. By</a>
+<span class="sourceLineNo">413</span><a id="line.413">     * decreasing your heap size, those proxy objects will exert more collection</a>
+<span class="sourceLineNo">414</span><a id="line.414">     * pressure, and hopefully cause Java to do incremental collections more</a>
+<span class="sourceLineNo">415</span><a id="line.415">     * often (and notice your unused objects). To set the maximum size of your</a>
+<span class="sourceLineNo">416</span><a id="line.416">     * java heap, pass this option to java on startup:</a>
+<span class="sourceLineNo">417</span><a id="line.417">     * </a>
+<span class="sourceLineNo">418</span><a id="line.418">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">419</span><a id="line.419">     * -Xmx&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">420</span><a id="line.420">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">421</span><a id="line.421">     * </a>
+<span class="sourceLineNo">422</span><a id="line.422">     * To change the minimum size of your java heap, pass this option to java on</a>
+<span class="sourceLineNo">423</span><a id="line.423">     * startup:</a>
+<span class="sourceLineNo">424</span><a id="line.424">     * </a>
+<span class="sourceLineNo">425</span><a id="line.425">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">426</span><a id="line.426">     * -Xms&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">427</span><a id="line.427">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">428</span><a id="line.428">     * </a>
+<span class="sourceLineNo">429</span><a id="line.429">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">430</span><a id="line.430">     * &lt;li&gt;</a>
+<span class="sourceLineNo">431</span><a id="line.431">     * &lt;li&gt;Try different garbage collectors in Java. To try the parallel</a>
+<span class="sourceLineNo">432</span><a id="line.432">     * incremental collector, start your Java process with: these options:</a>
+<span class="sourceLineNo">433</span><a id="line.433">     * </a>
+<span class="sourceLineNo">434</span><a id="line.434">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">435</span><a id="line.435">     * -XX:+UseParallelGC</a>
+<span class="sourceLineNo">436</span><a id="line.436">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">437</span><a id="line.437">     * </a>
+<span class="sourceLineNo">438</span><a id="line.438">     * The concurrent garbage collector works well too. To use that pass these</a>
+<span class="sourceLineNo">439</span><a id="line.439">     * options to java on startup:</a>
+<span class="sourceLineNo">440</span><a id="line.440">     * </a>
+<span class="sourceLineNo">441</span><a id="line.441">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">442</span><a id="line.442">     * -XX:+UseConcMarkSweepGC -XX:+UseParNewGC</a>
+<span class="sourceLineNo">443</span><a id="line.443">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">444</span><a id="line.444">     * </a>
+<span class="sourceLineNo">445</span><a id="line.445">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">446</span><a id="line.446">     * &lt;li&gt;If you are not re-using objects across Ferry calls, ensure your</a>
+<span class="sourceLineNo">447</span><a id="line.447">     * objects are short-lived; null out references when done.&lt;/li&gt;</a>
+<span class="sourceLineNo">448</span><a id="line.448">     * &lt;li&gt;Potentially try caching objects and reusing large objects across</a>
+<span class="sourceLineNo">449</span><a id="line.449">     * multiple calls -- this may give those objects time to move into the</a>
+<span class="sourceLineNo">450</span><a id="line.450">     * Tenured generation and reduce the copying overhead.&lt;/li&gt;</a>
+<span class="sourceLineNo">451</span><a id="line.451">     * &lt;li&gt;Explicitly manage Ferry memory yourself by calling</a>
+<span class="sourceLineNo">452</span><a id="line.452">     * &lt;code&gt;delete()&lt;/code&gt; on every {@link RefCounted} object when done with</a>
+<span class="sourceLineNo">453</span><a id="line.453">     * your objects to let Java know it doesn't need to copy the item across a</a>
+<span class="sourceLineNo">454</span><a id="line.454">     * collection. You can also use &lt;code&gt;copyReference()&lt;/code&gt; to get a new</a>
+<span class="sourceLineNo">455</span><a id="line.455">     * Java version of the same Ferry object that you can pass to another thread</a>
+<span class="sourceLineNo">456</span><a id="line.456">     * if you don't know when &lt;code&gt;delete()&lt;/code&gt; can be safely called.&lt;/li&gt;</a>
+<span class="sourceLineNo">457</span><a id="line.457">     * </a>
+<span class="sourceLineNo">458</span><a id="line.458">     * &lt;li&gt;Try the</a>
+<span class="sourceLineNo">459</span><a id="line.459">     * {@link MemoryModel#JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}</a>
+<span class="sourceLineNo">460</span><a id="line.460">     * model.&lt;/li&gt;</a>
+<span class="sourceLineNo">461</span><a id="line.461">     * </a>
+<span class="sourceLineNo">462</span><a id="line.462">     * &lt;/ul&gt;</a>
+<span class="sourceLineNo">463</span><a id="line.463">     */</a>
+<span class="sourceLineNo">464</span><a id="line.464">    JAVA_DIRECT_BUFFERS(1),</a>
+<span class="sourceLineNo">465</span><a id="line.465"></a>
+<span class="sourceLineNo">466</span><a id="line.466">    /**</a>
+<span class="sourceLineNo">467</span><a id="line.467">     * Large memory blocks are allocated as Direct {@link ByteBuffer} objects</a>
+<span class="sourceLineNo">468</span><a id="line.468">     * (as returned from {@link ByteBuffer#allocateDirect(int)}), but the Java</a>
+<span class="sourceLineNo">469</span><a id="line.469">     * standard-heap is &lt;i&gt;informed&lt;/i&gt; of the allocation by also attempting to</a>
+<span class="sourceLineNo">470</span><a id="line.470">     * quickly allocate (and release) a buffer of the same size on the standard</a>
+<span class="sourceLineNo">471</span><a id="line.471">     * heap..</a>
+<span class="sourceLineNo">472</span><a id="line.472">     * &lt;p&gt;</a>
+<span class="sourceLineNo">473</span><a id="line.473">     * This model can work well if your application is mostly single-threaded,</a>
+<span class="sourceLineNo">474</span><a id="line.474">     * and your Ferry application is doing most of the memory allocation in your</a>
+<span class="sourceLineNo">475</span><a id="line.475">     * program. The trick of &lt;i&gt;informing&lt;/i&gt; Java will put pressure on the JVM</a>
+<span class="sourceLineNo">476</span><a id="line.476">     * to collect appropriately, but by not keeping the references we avoid</a>
+<span class="sourceLineNo">477</span><a id="line.477">     * unnecessary copying for objects that survive collections.</a>
+<span class="sourceLineNo">478</span><a id="line.478">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">479</span><a id="line.479">     * &lt;p&gt;</a>
+<span class="sourceLineNo">480</span><a id="line.480">     * This heuristic is not failsafe though, and can still lead to collections</a>
+<span class="sourceLineNo">481</span><a id="line.481">     * not occurring at the right time for some applications.</a>
+<span class="sourceLineNo">482</span><a id="line.482">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">483</span><a id="line.483">     * &lt;p&gt;</a>
+<span class="sourceLineNo">484</span><a id="line.484">     * It is similar to the</a>
+<span class="sourceLineNo">485</span><a id="line.485">     * {@link #NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION} model and in</a>
+<span class="sourceLineNo">486</span><a id="line.486">     * general we recommend that model over this one.</a>
+<span class="sourceLineNo">487</span><a id="line.487">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">488</span><a id="line.488">     * &lt;h2&gt;Speed&lt;/h2&gt;</a>
+<span class="sourceLineNo">489</span><a id="line.489">     * &lt;p&gt;</a>
+<span class="sourceLineNo">490</span><a id="line.490">     * This model trades off some robustness for some speed. In tests it is</a>
+<span class="sourceLineNo">491</span><a id="line.491">     * generally 10-20% faster than the {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">492</span><a id="line.492">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">493</span><a id="line.493">     * &lt;p&gt;</a>
+<span class="sourceLineNo">494</span><a id="line.494">     * It is worth testing as a way of avoiding the explicit memory management</a>
+<span class="sourceLineNo">495</span><a id="line.495">     * needed to effectively use the {@link #JAVA_DIRECT_BUFFERS} model.</a>
+<span class="sourceLineNo">496</span><a id="line.496">     * However, the heuristic used is not fool-proof, and therefore may</a>
+<span class="sourceLineNo">497</span><a id="line.497">     * sometimes lead to unnecessary collection or {@link OutOfMemoryError}</a>
+<span class="sourceLineNo">498</span><a id="line.498">     * because Java didn't collect unused references in the standard heap in</a>
+<span class="sourceLineNo">499</span><a id="line.499">     * time (and hence did not release underlying native references).</a>
+<span class="sourceLineNo">500</span><a id="line.500">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">501</span><a id="line.501">     * &lt;h2&gt;Robustness&lt;/h2&gt;</a>
+<span class="sourceLineNo">502</span><a id="line.502">     * &lt;ol&gt;</a>
+<span class="sourceLineNo">503</span><a id="line.503">     * </a>
+<span class="sourceLineNo">504</span><a id="line.504">     * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Good. Java controls allocations of</a>
+<span class="sourceLineNo">505</span><a id="line.505">     * direct memory from a separate heap (yet another one), and has an</a>
+<span class="sourceLineNo">506</span><a id="line.506">     * additional tuning option to set that. By default on most JVMs, this heap</a>
+<span class="sourceLineNo">507</span><a id="line.507">     * size is set to 64mb which is very low for video processing (queue up 100</a>
+<span class="sourceLineNo">508</span><a id="line.508">     * images and see what we mean). With this option though we &lt;i&gt;inform&lt;/i&gt;</a>
+<span class="sourceLineNo">509</span><a id="line.509">     * Java of the allocation in the Direct heap, and this will often encourage</a>
+<span class="sourceLineNo">510</span><a id="line.510">     * Java to collect memory on a more timely basis.&lt;/li&gt;</a>
+<span class="sourceLineNo">511</span><a id="line.511">     * </a>
+<span class="sourceLineNo">512</span><a id="line.512">     * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Good. Released either when</a>
+<span class="sourceLineNo">513</span><a id="line.513">     * &lt;code&gt;delete()&lt;/code&gt; is called, or when the item is marked for</a>
+<span class="sourceLineNo">514</span><a id="line.514">     * collection. Collections happen more frequently than under the</a>
+<span class="sourceLineNo">515</span><a id="line.515">     * {@link #JAVA_DIRECT_BUFFERS} model due to &lt;i&gt;informing&lt;/i&gt; the standard</a>
+<span class="sourceLineNo">516</span><a id="line.516">     * heap at allocation time.&lt;/li&gt;</a>
+<span class="sourceLineNo">517</span><a id="line.517">     * </a>
+<span class="sourceLineNo">518</span><a id="line.518">     * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: Good. Especially for mostly</a>
+<span class="sourceLineNo">519</span><a id="line.519">     * single-threaded applications, the collection pressure introduced on</a>
+<span class="sourceLineNo">520</span><a id="line.520">     * allocation will lead to more timely collections to avoid</a>
+<span class="sourceLineNo">521</span><a id="line.521">     * {@link OutOfMemoryError} errors on the Direct heap.&lt;/li&gt;</a>
+<span class="sourceLineNo">522</span><a id="line.522">     * &lt;/ol&gt;</a>
+<span class="sourceLineNo">523</span><a id="line.523">     * </a>
+<span class="sourceLineNo">524</span><a id="line.524">     * &lt;h2&gt;Tuning Tips&lt;/h2&gt;</a>
+<span class="sourceLineNo">525</span><a id="line.525">     * &lt;p&gt;</a>
+<span class="sourceLineNo">526</span><a id="line.526">     * When using this model, these tips may increase performance, although in</a>
+<span class="sourceLineNo">527</span><a id="line.527">     * some situations, may instead decrease performance. Always measure.</a>
+<span class="sourceLineNo">528</span><a id="line.528">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">529</span><a id="line.529">     * &lt;ul&gt;</a>
+<span class="sourceLineNo">530</span><a id="line.530">     * &lt;li&gt;Increase the size of Sun's Java's direct buffer heap. Sun's Java</a>
+<span class="sourceLineNo">531</span><a id="line.531">     * implementation has an artificially low default separate heap for direct</a>
+<span class="sourceLineNo">532</span><a id="line.532">     * buffers (64mb). To make it higher pass this option to Java at startup:</a>
+<span class="sourceLineNo">533</span><a id="line.533">     * </a>
+<span class="sourceLineNo">534</span><a id="line.534">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">535</span><a id="line.535">     * -XX:MaxDirectMemorySize=&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">536</span><a id="line.536">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">537</span><a id="line.537">     * </a>
+<span class="sourceLineNo">538</span><a id="line.538">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">539</span><a id="line.539">     * &lt;li&gt;Paradoxically, try decreasing the size of your Java Heap if you get</a>
+<span class="sourceLineNo">540</span><a id="line.540">     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native</a>
+<span class="sourceLineNo">541</span><a id="line.541">     * memory have a small proxy object representing them in the Java Heap. By</a>
+<span class="sourceLineNo">542</span><a id="line.542">     * decreasing your heap size, those proxy objects will exert more collection</a>
+<span class="sourceLineNo">543</span><a id="line.543">     * pressure, and hopefully cause Java to do incremental collections more</a>
+<span class="sourceLineNo">544</span><a id="line.544">     * often (and notice your unused objects). To set the maximum size of your</a>
+<span class="sourceLineNo">545</span><a id="line.545">     * java heap, pass this option to java on startup:</a>
+<span class="sourceLineNo">546</span><a id="line.546">     * </a>
+<span class="sourceLineNo">547</span><a id="line.547">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">548</span><a id="line.548">     * -Xmx&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">549</span><a id="line.549">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">550</span><a id="line.550">     * </a>
+<span class="sourceLineNo">551</span><a id="line.551">     * To change the minimum size of your java heap, pass this option to java on</a>
+<span class="sourceLineNo">552</span><a id="line.552">     * startup:</a>
+<span class="sourceLineNo">553</span><a id="line.553">     * </a>
+<span class="sourceLineNo">554</span><a id="line.554">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">555</span><a id="line.555">     * -Xms&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">556</span><a id="line.556">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">557</span><a id="line.557">     * </a>
+<span class="sourceLineNo">558</span><a id="line.558">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">559</span><a id="line.559">     * &lt;li&gt;</a>
+<span class="sourceLineNo">560</span><a id="line.560">     * &lt;li&gt;Try different garbage collectors in Java. To try the parallel</a>
+<span class="sourceLineNo">561</span><a id="line.561">     * incremental collector, start your Java process with: these options:</a>
+<span class="sourceLineNo">562</span><a id="line.562">     * </a>
+<span class="sourceLineNo">563</span><a id="line.563">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">564</span><a id="line.564">     * -XX:+UseParallelGC</a>
+<span class="sourceLineNo">565</span><a id="line.565">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">566</span><a id="line.566">     * </a>
+<span class="sourceLineNo">567</span><a id="line.567">     * The concurrent garbage collector works well too. To use that pass these</a>
+<span class="sourceLineNo">568</span><a id="line.568">     * options to java on startup:</a>
+<span class="sourceLineNo">569</span><a id="line.569">     * </a>
+<span class="sourceLineNo">570</span><a id="line.570">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">571</span><a id="line.571">     * -XX:+UseConcMarkSweepGC -XX:+UseParNewGC</a>
+<span class="sourceLineNo">572</span><a id="line.572">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">573</span><a id="line.573">     * </a>
+<span class="sourceLineNo">574</span><a id="line.574">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">575</span><a id="line.575">     * &lt;li&gt;If you are not re-using objects across Ferry calls, ensure your</a>
+<span class="sourceLineNo">576</span><a id="line.576">     * objects are short-lived; null out references when done.&lt;/li&gt;</a>
+<span class="sourceLineNo">577</span><a id="line.577">     * &lt;li&gt;Potentially try caching objects and reusing large objects across</a>
+<span class="sourceLineNo">578</span><a id="line.578">     * multiple calls -- this may give those objects time to move into the</a>
+<span class="sourceLineNo">579</span><a id="line.579">     * Tenured generation and reduce the copying overhead.&lt;/li&gt;</a>
+<span class="sourceLineNo">580</span><a id="line.580">     * &lt;li&gt;Explicitly manage Ferry memory yourself by calling</a>
+<span class="sourceLineNo">581</span><a id="line.581">     * &lt;code&gt;delete()&lt;/code&gt; on every {@link RefCounted} object when done with</a>
+<span class="sourceLineNo">582</span><a id="line.582">     * your objects to let Java know it doesn't need to copy the item across a</a>
+<span class="sourceLineNo">583</span><a id="line.583">     * collection. You can also use &lt;code&gt;copyReference()&lt;/code&gt; to get a new</a>
+<span class="sourceLineNo">584</span><a id="line.584">     * Java version of the same Ferry object that you can pass to another thread</a>
+<span class="sourceLineNo">585</span><a id="line.585">     * if you don't know when &lt;code&gt;delete()&lt;/code&gt; can be safely called.&lt;/li&gt;</a>
+<span class="sourceLineNo">586</span><a id="line.586">     * </a>
+<span class="sourceLineNo">587</span><a id="line.587">     * &lt;li&gt;Try the {@link #JAVA_STANDARD_HEAP} model.&lt;/li&gt;</a>
+<span class="sourceLineNo">588</span><a id="line.588">     * </a>
+<span class="sourceLineNo">589</span><a id="line.589">     * &lt;/ul&gt;</a>
+<span class="sourceLineNo">590</span><a id="line.590">     */</a>
+<span class="sourceLineNo">591</span><a id="line.591">    JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(2),</a>
+<span class="sourceLineNo">592</span><a id="line.592"></a>
+<span class="sourceLineNo">593</span><a id="line.593">    /**</a>
+<span class="sourceLineNo">594</span><a id="line.594">     * Large memory blocks are allocated in native memory, completely bypassing</a>
+<span class="sourceLineNo">595</span><a id="line.595">     * the Java heap.</a>
+<span class="sourceLineNo">596</span><a id="line.596">     * &lt;p&gt;</a>
+<span class="sourceLineNo">597</span><a id="line.597">     * It is &lt;strong&gt;much&lt;/strong&gt; faster than the {@link #JAVA_STANDARD_HEAP},</a>
+<span class="sourceLineNo">598</span><a id="line.598">     * but much less robust.</a>
+<span class="sourceLineNo">599</span><a id="line.599">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">600</span><a id="line.600">     * &lt;h2&gt;Speed&lt;/h2&gt;</a>
+<span class="sourceLineNo">601</span><a id="line.601">     * &lt;p&gt;</a>
+<span class="sourceLineNo">602</span><a id="line.602">     * This is the fastest model available. In tests it is generally 30-40%</a>
+<span class="sourceLineNo">603</span><a id="line.603">     * faster than the {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">604</span><a id="line.604">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">605</span><a id="line.605">     * </a>
+<span class="sourceLineNo">606</span><a id="line.606">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">607</span><a id="line.607">     * &lt;p&gt;</a>
+<span class="sourceLineNo">608</span><a id="line.608">     * It is using the native operating system to allocate direct memory, which</a>
+<span class="sourceLineNo">609</span><a id="line.609">     * is slightly faster than using {@link #JAVA_DIRECT_BUFFERS}, and much</a>
+<span class="sourceLineNo">610</span><a id="line.610">     * faster than using the {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">611</span><a id="line.611">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">612</span><a id="line.612">     * &lt;p&gt;</a>
+<span class="sourceLineNo">613</span><a id="line.613">     * The downside is that for high-performance applications, you may need to</a>
+<span class="sourceLineNo">614</span><a id="line.614">     * explicitly manage {@link RefCounted} object life-cycles with</a>
+<span class="sourceLineNo">615</span><a id="line.615">     * {@link RefCounted#delete()} to ensure native memory is released in a</a>
+<span class="sourceLineNo">616</span><a id="line.616">     * timely manner.</a>
+<span class="sourceLineNo">617</span><a id="line.617">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">618</span><a id="line.618">     * &lt;h2&gt;Robustness&lt;/h2&gt;</a>
+<span class="sourceLineNo">619</span><a id="line.619">     * &lt;ol&gt;</a>
+<span class="sourceLineNo">620</span><a id="line.620">     * </a>
+<span class="sourceLineNo">621</span><a id="line.621">     * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Weak. Allocations using</a>
+<span class="sourceLineNo">622</span><a id="line.622">     * &lt;code&gt;make&lt;/code&gt; and releasing objects with {@link RefCounted#delete()}</a>
+<span class="sourceLineNo">623</span><a id="line.623">     * works like normal, but because Java has no idea of how much space is</a>
+<span class="sourceLineNo">624</span><a id="line.624">     * actually allocated in native memory, it may not collect</a>
+<span class="sourceLineNo">625</span><a id="line.625">     * {@link RefCounted} objects as quickly as you need it to (it will</a>
+<span class="sourceLineNo">626</span><a id="line.626">     * eventually collect and free all references though).&lt;/li&gt;</a>
+<span class="sourceLineNo">627</span><a id="line.627">     * </a>
+<span class="sourceLineNo">628</span><a id="line.628">     * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Released either when</a>
+<span class="sourceLineNo">629</span><a id="line.629">     * &lt;code&gt;delete()&lt;/code&gt; is called, or when the item is marked for</a>
+<span class="sourceLineNo">630</span><a id="line.630">     * collection&lt;/li&gt;</a>
+<span class="sourceLineNo">631</span><a id="line.631">     * </a>
+<span class="sourceLineNo">632</span><a id="line.632">     * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: Weak. In this model Java has no idea how</a>
+<span class="sourceLineNo">633</span><a id="line.633">     * much native memory is allocated, and therefore does not use that</a>
+<span class="sourceLineNo">634</span><a id="line.634">     * knowledge in its determination of when to collect. This can lead to</a>
+<span class="sourceLineNo">635</span><a id="line.635">     * {@link RefCounted} objects you created surviving longer than you want to,</a>
+<span class="sourceLineNo">636</span><a id="line.636">     * and therefore not releasing native memory in a timely fashion.&lt;/li&gt;</a>
+<span class="sourceLineNo">637</span><a id="line.637">     * &lt;/ol&gt;</a>
+<span class="sourceLineNo">638</span><a id="line.638">     * </a>
+<span class="sourceLineNo">639</span><a id="line.639">     * &lt;h2&gt;Tuning Tips&lt;/h2&gt;</a>
+<span class="sourceLineNo">640</span><a id="line.640">     * &lt;p&gt;</a>
+<span class="sourceLineNo">641</span><a id="line.641">     * When using this model, these tips may increase performance, although in</a>
+<span class="sourceLineNo">642</span><a id="line.642">     * some situations, may instead decrease performance. Always measure.</a>
+<span class="sourceLineNo">643</span><a id="line.643">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">644</span><a id="line.644">     * &lt;ul&gt;</a>
+<span class="sourceLineNo">645</span><a id="line.645">     * &lt;li&gt;Paradoxically, try decreasing the size of your Java Heap if you get</a>
+<span class="sourceLineNo">646</span><a id="line.646">     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native</a>
+<span class="sourceLineNo">647</span><a id="line.647">     * memory have a small proxy object representing them in the Java Heap. By</a>
+<span class="sourceLineNo">648</span><a id="line.648">     * decreasing your heap size, those proxy objects will exert more collection</a>
+<span class="sourceLineNo">649</span><a id="line.649">     * pressure, and hopefully cause Java to do incremental collections more</a>
+<span class="sourceLineNo">650</span><a id="line.650">     * often (and notice your unused objects). To set the maximum size of your</a>
+<span class="sourceLineNo">651</span><a id="line.651">     * java heap, pass this option to java on startup:</a>
+<span class="sourceLineNo">652</span><a id="line.652">     * </a>
+<span class="sourceLineNo">653</span><a id="line.653">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">654</span><a id="line.654">     * -Xmx&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">655</span><a id="line.655">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">656</span><a id="line.656">     * </a>
+<span class="sourceLineNo">657</span><a id="line.657">     * To change the minimum size of your java heap, pass this option to java on</a>
+<span class="sourceLineNo">658</span><a id="line.658">     * startup:</a>
+<span class="sourceLineNo">659</span><a id="line.659">     * </a>
+<span class="sourceLineNo">660</span><a id="line.660">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">661</span><a id="line.661">     * -Xms&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">662</span><a id="line.662">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">663</span><a id="line.663">     * </a>
+<span class="sourceLineNo">664</span><a id="line.664">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">665</span><a id="line.665">     * &lt;li&gt;</a>
+<span class="sourceLineNo">666</span><a id="line.666">     * &lt;li&gt;Try different garbage collectors in Java. To try the parallel</a>
+<span class="sourceLineNo">667</span><a id="line.667">     * incremental collector, start your Java process with: these options:</a>
+<span class="sourceLineNo">668</span><a id="line.668">     * </a>
+<span class="sourceLineNo">669</span><a id="line.669">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">670</span><a id="line.670">     * -XX:+UseParallelGC</a>
+<span class="sourceLineNo">671</span><a id="line.671">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">672</span><a id="line.672">     * </a>
+<span class="sourceLineNo">673</span><a id="line.673">     * The concurrent garbage collector works well too. To use that pass these</a>
+<span class="sourceLineNo">674</span><a id="line.674">     * options to java on startup:</a>
+<span class="sourceLineNo">675</span><a id="line.675">     * </a>
+<span class="sourceLineNo">676</span><a id="line.676">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">677</span><a id="line.677">     * -XX:+UseConcMarkSweepGC -XX:+UseParNewGC</a>
+<span class="sourceLineNo">678</span><a id="line.678">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">679</span><a id="line.679">     * </a>
+<span class="sourceLineNo">680</span><a id="line.680">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">681</span><a id="line.681">     * &lt;li&gt;Use the {@link JNIMemoryManager#startCollectionThread()} method to</a>
+<span class="sourceLineNo">682</span><a id="line.682">     * start up a thread dedicated to releasing objects as soon as they are</a>
+<span class="sourceLineNo">683</span><a id="line.683">     * enqued in a {@link ReferenceQueue}, rather than (the default) waiting for</a>
+<span class="sourceLineNo">684</span><a id="line.684">     * the next Ferry allocation or {@link JNIMemoryManager#collect()} explicit</a>
+<span class="sourceLineNo">685</span><a id="line.685">     * call. Or periodically call {@link JNIMemoryManager#collect()} yourself.&lt;/li&gt;</a>
+<span class="sourceLineNo">686</span><a id="line.686">     * &lt;li&gt;Cache long lived objects and reuse them across calls to avoid</a>
+<span class="sourceLineNo">687</span><a id="line.687">     * allocations.&lt;/li&gt;</a>
+<span class="sourceLineNo">688</span><a id="line.688">     * &lt;li&gt;Explicitly manage Ferry memory yourself by calling</a>
+<span class="sourceLineNo">689</span><a id="line.689">     * &lt;code&gt;delete()&lt;/code&gt; on every {@link RefCounted} object when done with</a>
+<span class="sourceLineNo">690</span><a id="line.690">     * your objects to let Java know it doesn't need to copy the item across a</a>
+<span class="sourceLineNo">691</span><a id="line.691">     * collection. You can also use &lt;code&gt;copyReference()&lt;/code&gt; to get a new</a>
+<span class="sourceLineNo">692</span><a id="line.692">     * Java version of the same Ferry object that you can pass to another thread</a>
+<span class="sourceLineNo">693</span><a id="line.693">     * if you don't know when &lt;code&gt;delete()&lt;/code&gt; can be safely called.&lt;/li&gt;</a>
+<span class="sourceLineNo">694</span><a id="line.694">     * </a>
+<span class="sourceLineNo">695</span><a id="line.695">     * &lt;li&gt;Try the</a>
+<span class="sourceLineNo">696</span><a id="line.696">     * {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION} model.</a>
+<span class="sourceLineNo">697</span><a id="line.697">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">698</span><a id="line.698">     * </a>
+<span class="sourceLineNo">699</span><a id="line.699">     * &lt;/ul&gt;</a>
+<span class="sourceLineNo">700</span><a id="line.700">     */</a>
+<span class="sourceLineNo">701</span><a id="line.701">    NATIVE_BUFFERS(3),</a>
+<span class="sourceLineNo">702</span><a id="line.702">    /**</a>
+<span class="sourceLineNo">703</span><a id="line.703">     * Large memory blocks are allocated in native memory, completely bypassing</a>
+<span class="sourceLineNo">704</span><a id="line.704">     * the Java heap, but Java is &lt;i&gt;informed&lt;/i&gt; of the allocation by briefly</a>
+<span class="sourceLineNo">705</span><a id="line.705">     * creating (and immediately releasing) a Java standard heap byte[] array of</a>
+<span class="sourceLineNo">706</span><a id="line.706">     * the same size.</a>
+<span class="sourceLineNo">707</span><a id="line.707">     * &lt;p&gt;</a>
+<span class="sourceLineNo">708</span><a id="line.708">     * It is faster than the {@link #JAVA_STANDARD_HEAP}, but less robust.</a>
+<span class="sourceLineNo">709</span><a id="line.709">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">710</span><a id="line.710">     * &lt;p&gt;</a>
+<span class="sourceLineNo">711</span><a id="line.711">     * This model can work well if your application is mostly single-threaded,</a>
+<span class="sourceLineNo">712</span><a id="line.712">     * and your Ferry application is doing most of the memory allocation in your</a>
+<span class="sourceLineNo">713</span><a id="line.713">     * program. The trick of informing Java will put pressure on the JVM to</a>
+<span class="sourceLineNo">714</span><a id="line.714">     * collect appropriately, but by not keeping the references to the byte[]</a>
+<span class="sourceLineNo">715</span><a id="line.715">     * array we temporarily allocate, we avoid unnecessary copying for objects</a>
+<span class="sourceLineNo">716</span><a id="line.716">     * that survive collections.</a>
+<span class="sourceLineNo">717</span><a id="line.717">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">718</span><a id="line.718">     * &lt;p&gt;</a>
+<span class="sourceLineNo">719</span><a id="line.719">     * This heuristic is not failsafe though, and can still lead to collections</a>
+<span class="sourceLineNo">720</span><a id="line.720">     * not occurring at the right time for some applications.</a>
+<span class="sourceLineNo">721</span><a id="line.721">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">722</span><a id="line.722">     * &lt;p&gt;</a>
+<span class="sourceLineNo">723</span><a id="line.723">     * It is similar to the</a>
+<span class="sourceLineNo">724</span><a id="line.724">     * {@link #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION} model.</a>
+<span class="sourceLineNo">725</span><a id="line.725">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">726</span><a id="line.726">     * &lt;h2&gt;Speed&lt;/h2&gt;</a>
+<span class="sourceLineNo">727</span><a id="line.727">     * &lt;p&gt;</a>
+<span class="sourceLineNo">728</span><a id="line.728">     * In tests this model is generally 25-30% faster than the</a>
+<span class="sourceLineNo">729</span><a id="line.729">     * {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">730</span><a id="line.730">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">731</span><a id="line.731">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">732</span><a id="line.732">     * &lt;p&gt;</a>
+<span class="sourceLineNo">733</span><a id="line.733">     * It is using the native operating system to allocate direct memory, which</a>
+<span class="sourceLineNo">734</span><a id="line.734">     * is slightly faster than using</a>
+<span class="sourceLineNo">735</span><a id="line.735">     * {@link #JAVA_DIRECT_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION}, and much</a>
+<span class="sourceLineNo">736</span><a id="line.736">     * faster than using the {@link #JAVA_STANDARD_HEAP} model.</a>
+<span class="sourceLineNo">737</span><a id="line.737">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">738</span><a id="line.738">     * &lt;p&gt;</a>
+<span class="sourceLineNo">739</span><a id="line.739">     * It is worth testing as a way of avoiding the explicit memory management</a>
+<span class="sourceLineNo">740</span><a id="line.740">     * needed to effectively use the {@link #NATIVE_BUFFERS} model. However, the</a>
+<span class="sourceLineNo">741</span><a id="line.741">     * heuristic used is not fool-proof, and therefore may sometimes lead to</a>
+<span class="sourceLineNo">742</span><a id="line.742">     * unnecessary collection or {@link OutOfMemoryError} because Java didn't</a>
+<span class="sourceLineNo">743</span><a id="line.743">     * collect unused references in the standard heap in time (and hence did not</a>
+<span class="sourceLineNo">744</span><a id="line.744">     * release underlying native references).</a>
+<span class="sourceLineNo">745</span><a id="line.745">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">746</span><a id="line.746">     * &lt;h2&gt;Robustness&lt;/h2&gt;</a>
+<span class="sourceLineNo">747</span><a id="line.747">     * &lt;ol&gt;</a>
+<span class="sourceLineNo">748</span><a id="line.748">     * </a>
+<span class="sourceLineNo">749</span><a id="line.749">     * &lt;li&gt;&lt;strong&gt;Allocation&lt;/strong&gt;: Good. With this option we allocate</a>
+<span class="sourceLineNo">750</span><a id="line.750">     * large, long-lived memory from the native heap, but we &lt;i&gt;inform&lt;/i&gt; Java</a>
+<span class="sourceLineNo">751</span><a id="line.751">     * of the allocation in the Direct heap, and this will often encourage Java</a>
+<span class="sourceLineNo">752</span><a id="line.752">     * to collect memory on a more timely basis.&lt;/li&gt;</a>
+<span class="sourceLineNo">753</span><a id="line.753">     * </a>
+<span class="sourceLineNo">754</span><a id="line.754">     * &lt;li&gt;&lt;strong&gt;Collection&lt;/strong&gt;: Good. Released either when</a>
+<span class="sourceLineNo">755</span><a id="line.755">     * &lt;code&gt;delete()&lt;/code&gt; is called, or when the item is marked for</a>
+<span class="sourceLineNo">756</span><a id="line.756">     * collection. Collections happen more frequently than under the</a>
+<span class="sourceLineNo">757</span><a id="line.757">     * {@link #NATIVE_BUFFERS} model due to &lt;i&gt;informing&lt;/i&gt; the standard heap</a>
+<span class="sourceLineNo">758</span><a id="line.758">     * at allocation time.&lt;/li&gt;</a>
+<span class="sourceLineNo">759</span><a id="line.759">     * </a>
+<span class="sourceLineNo">760</span><a id="line.760">     * &lt;li&gt;&lt;strong&gt;Low Memory&lt;/strong&gt;: Good. Especially for mostly</a>
+<span class="sourceLineNo">761</span><a id="line.761">     * single-threaded applications, the collection pressure introduced on</a>
+<span class="sourceLineNo">762</span><a id="line.762">     * allocation will lead to more timely collections to avoid</a>
+<span class="sourceLineNo">763</span><a id="line.763">     * {@link OutOfMemoryError} errors on the native heap.&lt;/li&gt;</a>
+<span class="sourceLineNo">764</span><a id="line.764">     * &lt;/ol&gt;</a>
+<span class="sourceLineNo">765</span><a id="line.765">     * </a>
+<span class="sourceLineNo">766</span><a id="line.766">     * &lt;h2&gt;Tuning Tips&lt;/h2&gt;</a>
+<span class="sourceLineNo">767</span><a id="line.767">     * &lt;p&gt;</a>
+<span class="sourceLineNo">768</span><a id="line.768">     * When using this model, these tips may increase performance, although in</a>
+<span class="sourceLineNo">769</span><a id="line.769">     * some situations, may instead decrease performance. Always measure.</a>
+<span class="sourceLineNo">770</span><a id="line.770">     * &lt;/p&gt;</a>
+<span class="sourceLineNo">771</span><a id="line.771">     * &lt;ul&gt;</a>
+<span class="sourceLineNo">772</span><a id="line.772">     * &lt;li&gt;Paradoxically, try decreasing the size of your Java Heap if you get</a>
+<span class="sourceLineNo">773</span><a id="line.773">     * {@link OutOfMemoryError} exceptions. Objects that are allocated in native</a>
+<span class="sourceLineNo">774</span><a id="line.774">     * memory have a small proxy object representing them in the Java Heap. By</a>
+<span class="sourceLineNo">775</span><a id="line.775">     * decreasing your heap size, those proxy objects will exert more collection</a>
+<span class="sourceLineNo">776</span><a id="line.776">     * pressure, and hopefully cause Java to do incremental collections more</a>
+<span class="sourceLineNo">777</span><a id="line.777">     * often (and notice your unused objects). To set the maximum size of your</a>
+<span class="sourceLineNo">778</span><a id="line.778">     * java heap, pass this option to java on startup:</a>
+<span class="sourceLineNo">779</span><a id="line.779">     * </a>
+<span class="sourceLineNo">780</span><a id="line.780">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">781</span><a id="line.781">     * -Xmx&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">782</span><a id="line.782">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">783</span><a id="line.783">     * </a>
+<span class="sourceLineNo">784</span><a id="line.784">     * To change the minimum size of your java heap, pass this option to java on</a>
+<span class="sourceLineNo">785</span><a id="line.785">     * startup:</a>
+<span class="sourceLineNo">786</span><a id="line.786">     * </a>
+<span class="sourceLineNo">787</span><a id="line.787">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">788</span><a id="line.788">     * -Xms&amp;lt;size&amp;gt;</a>
+<span class="sourceLineNo">789</span><a id="line.789">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">790</span><a id="line.790">     * </a>
+<span class="sourceLineNo">791</span><a id="line.791">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">792</span><a id="line.792">     * &lt;li&gt;</a>
+<span class="sourceLineNo">793</span><a id="line.793">     * &lt;li&gt;Try different garbage collectors in Java. To try the parallel</a>
+<span class="sourceLineNo">794</span><a id="line.794">     * incremental collector, start your Java process with: these options:</a>
+<span class="sourceLineNo">795</span><a id="line.795">     * </a>
+<span class="sourceLineNo">796</span><a id="line.796">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">797</span><a id="line.797">     * -XX:+UseParallelGC</a>
+<span class="sourceLineNo">798</span><a id="line.798">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">799</span><a id="line.799">     * </a>
+<span class="sourceLineNo">800</span><a id="line.800">     * The concurrent garbage collector works well too. To use that pass these</a>
+<span class="sourceLineNo">801</span><a id="line.801">     * options to java on startup:</a>
+<span class="sourceLineNo">802</span><a id="line.802">     * </a>
+<span class="sourceLineNo">803</span><a id="line.803">     * &lt;pre&gt;</a>
+<span class="sourceLineNo">804</span><a id="line.804">     * -XX:+UseConcMarkSweepGC -XX:+UseParNewGC</a>
+<span class="sourceLineNo">805</span><a id="line.805">     * &lt;/pre&gt;</a>
+<span class="sourceLineNo">806</span><a id="line.806">     * </a>
+<span class="sourceLineNo">807</span><a id="line.807">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">808</span><a id="line.808">     * &lt;li&gt;Use the {@link JNIMemoryManager#startCollectionThread()} method to</a>
+<span class="sourceLineNo">809</span><a id="line.809">     * start up a thread dedicated to releasing objects as soon as they are</a>
+<span class="sourceLineNo">810</span><a id="line.810">     * enqued in a {@link ReferenceQueue}, rather than (the default) waiting for</a>
+<span class="sourceLineNo">811</span><a id="line.811">     * the next Ferry allocation or {@link JNIMemoryManager#collect()} explicit</a>
+<span class="sourceLineNo">812</span><a id="line.812">     * call. Or periodically call {@link JNIMemoryManager#collect()} yourself.&lt;/li&gt;</a>
+<span class="sourceLineNo">813</span><a id="line.813">     * &lt;li&gt;Cache long lived objects and reuse them across calls to avoid</a>
+<span class="sourceLineNo">814</span><a id="line.814">     * allocations.&lt;/li&gt;</a>
+<span class="sourceLineNo">815</span><a id="line.815">     * &lt;li&gt;Explicitly manage Ferry memory yourself by calling</a>
+<span class="sourceLineNo">816</span><a id="line.816">     * &lt;code&gt;delete()&lt;/code&gt; on every {@link RefCounted} object when done with</a>
+<span class="sourceLineNo">817</span><a id="line.817">     * your objects to let Java know it doesn't need to copy the item across a</a>
+<span class="sourceLineNo">818</span><a id="line.818">     * collection. You can also use &lt;code&gt;copyReference()&lt;/code&gt; to get a new</a>
+<span class="sourceLineNo">819</span><a id="line.819">     * Java version of the same Ferry object that you can pass to another thread</a>
+<span class="sourceLineNo">820</span><a id="line.820">     * if you don't know when &lt;code&gt;delete()&lt;/code&gt; can be safely called.&lt;/li&gt;</a>
+<span class="sourceLineNo">821</span><a id="line.821">     * </a>
+<span class="sourceLineNo">822</span><a id="line.822">     * &lt;li&gt;Try the</a>
+<span class="sourceLineNo">823</span><a id="line.823">     * {@link MemoryModel#NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION} model.</a>
+<span class="sourceLineNo">824</span><a id="line.824">     * &lt;/li&gt;</a>
+<span class="sourceLineNo">825</span><a id="line.825">     * </a>
+<span class="sourceLineNo">826</span><a id="line.826">     * &lt;/ul&gt;</a>
+<span class="sourceLineNo">827</span><a id="line.827">     */</a>
+<span class="sourceLineNo">828</span><a id="line.828">    NATIVE_BUFFERS_WITH_STANDARD_HEAP_NOTIFICATION(4);</a>
+<span class="sourceLineNo">829</span><a id="line.829"></a>
+<span class="sourceLineNo">830</span><a id="line.830">    /**</a>
+<span class="sourceLineNo">831</span><a id="line.831">     * The integer native mode that the JNIMemoryManager.cpp file expects</a>
+<span class="sourceLineNo">832</span><a id="line.832">     */</a>
+<span class="sourceLineNo">833</span><a id="line.833">    private final int mNativeValue;</a>
+<span class="sourceLineNo">834</span><a id="line.834"></a>
+<span class="sourceLineNo">835</span><a id="line.835">    /**</a>
+<span class="sourceLineNo">836</span><a id="line.836">     * Create a {@link MemoryModel}.</a>
+<span class="sourceLineNo">837</span><a id="line.837">     * </a>
+<span class="sourceLineNo">838</span><a id="line.838">     * @param nativeValue What we actually use in native code.</a>
+<span class="sourceLineNo">839</span><a id="line.839">     */</a>
+<span class="sourceLineNo">840</span><a id="line.840">    private MemoryModel(int nativeValue)</a>
+<span class="sourceLineNo">841</span><a id="line.841">    {</a>
+<span class="sourceLineNo">842</span><a id="line.842">      mNativeValue = nativeValue;</a>
+<span class="sourceLineNo">843</span><a id="line.843">    }</a>
+<span class="sourceLineNo">844</span><a id="line.844"></a>
+<span class="sourceLineNo">845</span><a id="line.845">    /**</a>
+<span class="sourceLineNo">846</span><a id="line.846">     * Get the native value to pass to native code</a>
+<span class="sourceLineNo">847</span><a id="line.847">     * </a>
+<span class="sourceLineNo">848</span><a id="line.848">     * @return a value.</a>
+<span class="sourceLineNo">849</span><a id="line.849">     */</a>
+<span class="sourceLineNo">850</span><a id="line.850">    public int getNativeValue()</a>
+<span class="sourceLineNo">851</span><a id="line.851">    {</a>
+<span class="sourceLineNo">852</span><a id="line.852">      return mNativeValue;</a>
+<span class="sourceLineNo">853</span><a id="line.853">    }</a>
+<span class="sourceLineNo">854</span><a id="line.854"></a>
+<span class="sourceLineNo">855</span><a id="line.855">  }</a>
+<span class="sourceLineNo">856</span><a id="line.856"></a>
+<span class="sourceLineNo">857</span><a id="line.857">  /**</a>
+<span class="sourceLineNo">858</span><a id="line.858">   * Our singleton (classloader while) manager.</a>
+<span class="sourceLineNo">859</span><a id="line.859">   */</a>
+<span class="sourceLineNo">860</span><a id="line.860">  private static final JNIMemoryManager mMgr = new JNIMemoryManager();</a>
+<span class="sourceLineNo">861</span><a id="line.861">  final private Logger log = LoggerFactory.getLogger(this.getClass());</a>
+<span class="sourceLineNo">862</span><a id="line.862"></a>
+<span class="sourceLineNo">863</span><a id="line.863">  private static MemoryModel mMemoryModel;</a>
+<span class="sourceLineNo">864</span><a id="line.864">  /*</a>
+<span class="sourceLineNo">865</span><a id="line.865">   * This is executed in hot code, so instead we cache the value</a>
+<span class="sourceLineNo">866</span><a id="line.866">   * and assume it's only set from Java code.</a>
+<span class="sourceLineNo">867</span><a id="line.867">   */</a>
+<span class="sourceLineNo">868</span><a id="line.868">  static {</a>
+<span class="sourceLineNo">869</span><a id="line.869">    int model = 0;</a>
+<span class="sourceLineNo">870</span><a id="line.870">    mMemoryModel = MemoryModel.JAVA_STANDARD_HEAP;</a>
+<span class="sourceLineNo">871</span><a id="line.871">    model = FerryJNI.getMemoryModel();</a>
+<span class="sourceLineNo">872</span><a id="line.872">    for (MemoryModel candidate : MemoryModel.values())</a>
+<span class="sourceLineNo">873</span><a id="line.873">      if (candidate.getNativeValue() == model)</a>
+<span class="sourceLineNo">874</span><a id="line.874">        mMemoryModel = candidate;</a>
+<span class="sourceLineNo">875</span><a id="line.875">  }</a>
+<span class="sourceLineNo">876</span><a id="line.876"></a>
+<span class="sourceLineNo">877</span><a id="line.877">  /**</a>
+<span class="sourceLineNo">878</span><a id="line.878">   * Get the global {@link JNIMemoryManager} being used.</a>
+<span class="sourceLineNo">879</span><a id="line.879">   * </a>
+<span class="sourceLineNo">880</span><a id="line.880">   * @return the manager</a>
+<span class="sourceLineNo">881</span><a id="line.881">   */</a>
+<span class="sourceLineNo">882</span><a id="line.882">  static public JNIMemoryManager getMgr()</a>
+<span class="sourceLineNo">883</span><a id="line.883">  {</a>
+<span class="sourceLineNo">884</span><a id="line.884">    return mMgr;</a>
+<span class="sourceLineNo">885</span><a id="line.885">  }</a>
+<span class="sourceLineNo">886</span><a id="line.886"></a>
+<span class="sourceLineNo">887</span><a id="line.887">  /**</a>
+<span class="sourceLineNo">888</span><a id="line.888">   * A convenience way to call {@link #getMgr()}.{@link #gc()}.</a>
+<span class="sourceLineNo">889</span><a id="line.889">   * &lt;p&gt;</a>
+<span class="sourceLineNo">890</span><a id="line.890">   * Really somewhat mis-named, as this will cause us to free any</a>
+<span class="sourceLineNo">891</span><a id="line.891">   * native memory allocated by ferry, but won't cause us to walk</a>
+<span class="sourceLineNo">892</span><a id="line.892">   * our own internal heap -- that's only done on allocation.</a>
+<span class="sourceLineNo">893</span><a id="line.893">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">894</span><a id="line.894">   */</a>
+<span class="sourceLineNo">895</span><a id="line.895">  static public void collect()</a>
+<span class="sourceLineNo">896</span><a id="line.896">  {</a>
+<span class="sourceLineNo">897</span><a id="line.897">    getMgr().gc();</a>
+<span class="sourceLineNo">898</span><a id="line.898">  }</a>
+<span class="sourceLineNo">899</span><a id="line.899"></a>
+<span class="sourceLineNo">900</span><a id="line.900">  /**</a>
+<span class="sourceLineNo">901</span><a id="line.901">   * The reference queue that {@link RefCounted} objects will eventually find</a>
+<span class="sourceLineNo">902</span><a id="line.902">   * their way to.</a>
+<span class="sourceLineNo">903</span><a id="line.903">   */</a>
+<span class="sourceLineNo">904</span><a id="line.904">  private final ReferenceQueue&lt;Object&gt; mRefQueue;</a>
+<span class="sourceLineNo">905</span><a id="line.905"></a>
+<span class="sourceLineNo">906</span><a id="line.906">  /**</a>
+<span class="sourceLineNo">907</span><a id="line.907">   * Used for managing our collect-and-sweep JNIReference heap.</a>
+<span class="sourceLineNo">908</span><a id="line.908">   */</a>
+<span class="sourceLineNo">909</span><a id="line.909">  private final AtomicBoolean mSpinLock;</a>
+<span class="sourceLineNo">910</span><a id="line.910">  private final Lock mLock;</a>
+<span class="sourceLineNo">911</span><a id="line.911">  private JNIReference mValidReferences[];</a>
+<span class="sourceLineNo">912</span><a id="line.912">  private volatile int mNextAvailableReferenceSlot;</a>
+<span class="sourceLineNo">913</span><a id="line.913">  private volatile int mMaxValidReference;</a>
+<span class="sourceLineNo">914</span><a id="line.914">  private int mMinimumReferencesToCache;</a>
+<span class="sourceLineNo">915</span><a id="line.915">  private double mExpandIncrement;</a>
+<span class="sourceLineNo">916</span><a id="line.916">  private double mShrinkScaleFactor;</a>
+<span class="sourceLineNo">917</span><a id="line.917">  private double mMaxFreeRatio;</a>
+<span class="sourceLineNo">918</span><a id="line.918">  private double mMinFreeRatio;</a>
+<span class="sourceLineNo">919</span><a id="line.919">  </a>
+<span class="sourceLineNo">920</span><a id="line.920">  /**</a>
+<span class="sourceLineNo">921</span><a id="line.921">   * The constructor is package level so others can't create it.</a>
+<span class="sourceLineNo">922</span><a id="line.922">   */</a>
+<span class="sourceLineNo">923</span><a id="line.923">  JNIMemoryManager()</a>
+<span class="sourceLineNo">924</span><a id="line.924">  {</a>
+<span class="sourceLineNo">925</span><a id="line.925">    mRefQueue = new ReferenceQueue&lt;Object&gt;();</a>
+<span class="sourceLineNo">926</span><a id="line.926">    mCollectionThread = null;</a>
+<span class="sourceLineNo">927</span><a id="line.927">    mLock = new ReentrantLock();</a>
+<span class="sourceLineNo">928</span><a id="line.928">    mSpinLock = new AtomicBoolean(false);</a>
+<span class="sourceLineNo">929</span><a id="line.929">    final int minReferences=1024*4;</a>
+<span class="sourceLineNo">930</span><a id="line.930">    mMinimumReferencesToCache = minReferences;</a>
+<span class="sourceLineNo">931</span><a id="line.931">    mExpandIncrement = 0.20; // expand by 20% at a time</a>
+<span class="sourceLineNo">932</span><a id="line.932">    mShrinkScaleFactor = 0.25; // shrink by 25% of mExpandIncrement</a>
+<span class="sourceLineNo">933</span><a id="line.933">    mValidReferences = new JNIReference[minReferences]; </a>
+<span class="sourceLineNo">934</span><a id="line.934">    mMaxValidReference = minReferences;</a>
+<span class="sourceLineNo">935</span><a id="line.935">    mNextAvailableReferenceSlot = 0;</a>
+<span class="sourceLineNo">936</span><a id="line.936">    mMaxFreeRatio = 0.70;</a>
+<span class="sourceLineNo">937</span><a id="line.937">    mMinFreeRatio = 0.30;</a>
+<span class="sourceLineNo">938</span><a id="line.938">  }</a>
+<span class="sourceLineNo">939</span><a id="line.939">  </a>
+<span class="sourceLineNo">940</span><a id="line.940">  private void blockingLock()</a>
+<span class="sourceLineNo">941</span><a id="line.941">  {</a>
+<span class="sourceLineNo">942</span><a id="line.942">    mLock.lock();</a>
+<span class="sourceLineNo">943</span><a id="line.943">    while(!mSpinLock.compareAndSet(false, true))</a>
+<span class="sourceLineNo">944</span><a id="line.944">      ; // grab the spin lock</a>
+<span class="sourceLineNo">945</span><a id="line.945">  }</a>
+<span class="sourceLineNo">946</span><a id="line.946">  private void blockingUnlock()</a>
+<span class="sourceLineNo">947</span><a id="line.947">  {</a>
+<span class="sourceLineNo">948</span><a id="line.948">    final boolean result = mSpinLock.compareAndSet(true, false);</a>
+<span class="sourceLineNo">949</span><a id="line.949">    assert result : "Should never ever be unlocked here";</a>
+<span class="sourceLineNo">950</span><a id="line.950">    mLock.unlock();</a>
+<span class="sourceLineNo">951</span><a id="line.951">  }</a>
+<span class="sourceLineNo">952</span><a id="line.952"></a>
+<span class="sourceLineNo">953</span><a id="line.953">  /**</a>
+<span class="sourceLineNo">954</span><a id="line.954">   * Sets the minimum number of references to cache.</a>
+<span class="sourceLineNo">955</span><a id="line.955">   * &lt;p&gt;</a>
+<span class="sourceLineNo">956</span><a id="line.956">   * The {@link JNIMemoryManager} needs to cache weak references</a>
+<span class="sourceLineNo">957</span><a id="line.957">   * to allocated Ferry object.  This setting controls the minimum</a>
+<span class="sourceLineNo">958</span><a id="line.958">   * size of that cache.</a>
+<span class="sourceLineNo">959</span><a id="line.959">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">960</span><a id="line.960">   * </a>
+<span class="sourceLineNo">961</span><a id="line.961">   * @param minimumReferencesToCache Minimum number of references to cache.</a>
+<span class="sourceLineNo">962</span><a id="line.962">   * @throws IllegalArgumentException if &lt;= 0</a>
+<span class="sourceLineNo">963</span><a id="line.963">   */</a>
+<span class="sourceLineNo">964</span><a id="line.964">  public void setMinimumReferencesToCache(int minimumReferencesToCache)</a>
+<span class="sourceLineNo">965</span><a id="line.965">  {</a>
+<span class="sourceLineNo">966</span><a id="line.966">    if (minimumReferencesToCache &lt;= 0)</a>
+<span class="sourceLineNo">967</span><a id="line.967">      throw new IllegalArgumentException("Must pass in a positive integer");</a>
+<span class="sourceLineNo">968</span><a id="line.968">    mMinimumReferencesToCache = minimumReferencesToCache;</a>
+<span class="sourceLineNo">969</span><a id="line.969">  }</a>
+<span class="sourceLineNo">970</span><a id="line.970"></a>
+<span class="sourceLineNo">971</span><a id="line.971">  /**</a>
+<span class="sourceLineNo">972</span><a id="line.972">   * Get the minimum number of references to cache.</a>
+<span class="sourceLineNo">973</span><a id="line.973">   * @return The minimum number of references to cache.</a>
+<span class="sourceLineNo">974</span><a id="line.974">   * @see #setMinimumReferencesToCache(int)</a>
+<span class="sourceLineNo">975</span><a id="line.975">   */</a>
+<span class="sourceLineNo">976</span><a id="line.976">  public int getMinimumReferencesToCache()</a>
+<span class="sourceLineNo">977</span><a id="line.977">  {</a>
+<span class="sourceLineNo">978</span><a id="line.978">    return mMinimumReferencesToCache;</a>
+<span class="sourceLineNo">979</span><a id="line.979">  }</a>
+<span class="sourceLineNo">980</span><a id="line.980"></a>
+<span class="sourceLineNo">981</span><a id="line.981">  /**</a>
+<span class="sourceLineNo">982</span><a id="line.982">   * Get the percentage value we will increment the reference cache by</a>
+<span class="sourceLineNo">983</span><a id="line.983">   * if we need to expand it.</a>
+<span class="sourceLineNo">984</span><a id="line.984">   * @param expandIncrement A percentage we will increment the reference cache</a>
+<span class="sourceLineNo">985</span><a id="line.985">   *  by if we need to expand it.</a>
+<span class="sourceLineNo">986</span><a id="line.986">   * @throws IllegalArgumentException if &lt;= 0</a>
+<span class="sourceLineNo">987</span><a id="line.987">   */</a>
+<span class="sourceLineNo">988</span><a id="line.988">  public void setExpandIncrement(double expandIncrement)</a>
+<span class="sourceLineNo">989</span><a id="line.989">  {</a>
+<span class="sourceLineNo">990</span><a id="line.990">    if (expandIncrement &lt;= 0)</a>
+<span class="sourceLineNo">991</span><a id="line.991">      throw new IllegalArgumentException("Must pass in positive percentage");</a>
+<span class="sourceLineNo">992</span><a id="line.992">    mExpandIncrement = expandIncrement/100;</a>
+<span class="sourceLineNo">993</span><a id="line.993">  }</a>
+<span class="sourceLineNo">994</span><a id="line.994"></a>
+<span class="sourceLineNo">995</span><a id="line.995">  /**</a>
+<span class="sourceLineNo">996</span><a id="line.996">   * Get the percentage value we will increment the reference cache by</a>
+<span class="sourceLineNo">997</span><a id="line.997">   * if we need to expand it.</a>
+<span class="sourceLineNo">998</span><a id="line.998">   * @return the percentage value.</a>
+<span class="sourceLineNo">999</span><a id="line.999">   * @see #setExpandIncrement(double)</a>
+<span class="sourceLineNo">1000</span><a id="line.1000">   */</a>
+<span class="sourceLineNo">1001</span><a id="line.1001">  public double getExpandIncrement()</a>
+<span class="sourceLineNo">1002</span><a id="line.1002">  {</a>
+<span class="sourceLineNo">1003</span><a id="line.1003">    return mExpandIncrement*100;</a>
+<span class="sourceLineNo">1004</span><a id="line.1004">  }</a>
+<span class="sourceLineNo">1005</span><a id="line.1005"></a>
+<span class="sourceLineNo">1006</span><a id="line.1006">  /**</a>
+<span class="sourceLineNo">1007</span><a id="line.1007">   * Set the percentage value we will shrink the reference cache by when</a>
+<span class="sourceLineNo">1008</span><a id="line.1008">   * we determine shrinking is possible.</a>
+<span class="sourceLineNo">1009</span><a id="line.1009">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1010</span><a id="line.1010">   * If we decide to shrink, the amount we shrink the cache by is</a>
+<span class="sourceLineNo">1011</span><a id="line.1011">   * {@link #getExpandIncrement()}*{@link #getShrinkFactor()}.</a>
+<span class="sourceLineNo">1012</span><a id="line.1012">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1013</span><a id="line.1013">   * </a>
+<span class="sourceLineNo">1014</span><a id="line.1014">   * @param shrinkFactor The shrink percentage.</a>
+<span class="sourceLineNo">1015</span><a id="line.1015">   * @see #setExpandIncrement(double)</a>
+<span class="sourceLineNo">1016</span><a id="line.1016">   * @throws IllegalArgumentException if shrinkFactor &lt;=0 or &gt;= 100.</a>
+<span class="sourceLineNo">1017</span><a id="line.1017">   */</a>
+<span class="sourceLineNo">1018</span><a id="line.1018">  public void setShrinkFactor(double shrinkFactor)</a>
+<span class="sourceLineNo">1019</span><a id="line.1019">  {</a>
+<span class="sourceLineNo">1020</span><a id="line.1020">    if (shrinkFactor &lt;= 0 || shrinkFactor &gt;= 100)</a>
+<span class="sourceLineNo">1021</span><a id="line.1021">      throw new IllegalArgumentException("only 0 &lt; shrinkFactor &lt; 100 allowed");</a>
+<span class="sourceLineNo">1022</span><a id="line.1022">    mShrinkScaleFactor = shrinkFactor/100;</a>
+<span class="sourceLineNo">1023</span><a id="line.1023">  }</a>
+<span class="sourceLineNo">1024</span><a id="line.1024"></a>
+<span class="sourceLineNo">1025</span><a id="line.1025">  /**</a>
+<span class="sourceLineNo">1026</span><a id="line.1026">   * Get the shrink factor.</a>
+<span class="sourceLineNo">1027</span><a id="line.1027">   * @return the shrink factor.</a>
+<span class="sourceLineNo">1028</span><a id="line.1028">   * @see #setShrinkFactor(double)</a>
+<span class="sourceLineNo">1029</span><a id="line.1029">   */</a>
+<span class="sourceLineNo">1030</span><a id="line.1030">  public double getShrinkFactor()</a>
+<span class="sourceLineNo">1031</span><a id="line.1031">  {</a>
+<span class="sourceLineNo">1032</span><a id="line.1032">    return mShrinkScaleFactor*100;</a>
+<span class="sourceLineNo">1033</span><a id="line.1033">  }</a>
+<span class="sourceLineNo">1034</span><a id="line.1034"></a>
+<span class="sourceLineNo">1035</span><a id="line.1035"></a>
+<span class="sourceLineNo">1036</span><a id="line.1036">  /**</a>
+<span class="sourceLineNo">1037</span><a id="line.1037">   * Sets the maximum ratio of free space we'll allow without</a>
+<span class="sourceLineNo">1038</span><a id="line.1038">   * trying to shrink the memory manager heap.</a>
+<span class="sourceLineNo">1039</span><a id="line.1039">   * @param maxFreeRatio The maximum amount (0 &lt; maxFreeRatio &lt; 100) of</a>
+<span class="sourceLineNo">1040</span><a id="line.1040">   *   free space.</a>
+<span class="sourceLineNo">1041</span><a id="line.1041">   */</a>
+<span class="sourceLineNo">1042</span><a id="line.1042">  public void setMaxFreeRatio(double maxFreeRatio)</a>
+<span class="sourceLineNo">1043</span><a id="line.1043">  {</a>
+<span class="sourceLineNo">1044</span><a id="line.1044">    mMaxFreeRatio = maxFreeRatio/100;</a>
+<span class="sourceLineNo">1045</span><a id="line.1045">  }</a>
+<span class="sourceLineNo">1046</span><a id="line.1046"></a>
+<span class="sourceLineNo">1047</span><a id="line.1047">  /**</a>
+<span class="sourceLineNo">1048</span><a id="line.1048">   * Get the maximum ratio of free space we'll allow in a memory manager heap</a>
+<span class="sourceLineNo">1049</span><a id="line.1049">   * before trying to shrink on the next collection. </a>
+<span class="sourceLineNo">1050</span><a id="line.1050">   * @return the ratio of free space</a>
+<span class="sourceLineNo">1051</span><a id="line.1051">   * @see #setMaxFreeRatio(double)</a>
+<span class="sourceLineNo">1052</span><a id="line.1052">   */</a>
+<span class="sourceLineNo">1053</span><a id="line.1053">  public double getMaxFreeRatio()</a>
+<span class="sourceLineNo">1054</span><a id="line.1054">  {</a>
+<span class="sourceLineNo">1055</span><a id="line.1055">    return mMaxFreeRatio*100;</a>
+<span class="sourceLineNo">1056</span><a id="line.1056">  }</a>
+<span class="sourceLineNo">1057</span><a id="line.1057"></a>
+<span class="sourceLineNo">1058</span><a id="line.1058">  /**</a>
+<span class="sourceLineNo">1059</span><a id="line.1059">   * Sets the minimum ratio of free space to total memory manager heap</a>
+<span class="sourceLineNo">1060</span><a id="line.1060">   * size we'll allow before expanding the heap.  </a>
+<span class="sourceLineNo">1061</span><a id="line.1061">   * @param minFreeRatio The minimum free ratio.</a>
+<span class="sourceLineNo">1062</span><a id="line.1062">   */</a>
+<span class="sourceLineNo">1063</span><a id="line.1063">  public void setMinFreeRatio(double minFreeRatio)</a>
+<span class="sourceLineNo">1064</span><a id="line.1064">  {</a>
+<span class="sourceLineNo">1065</span><a id="line.1065">    mMinFreeRatio = minFreeRatio/100;</a>
+<span class="sourceLineNo">1066</span><a id="line.1066">  }</a>
+<span class="sourceLineNo">1067</span><a id="line.1067"></a>
+<span class="sourceLineNo">1068</span><a id="line.1068">  /**</a>
+<span class="sourceLineNo">1069</span><a id="line.1069">   * Gets the minimum ratio of free space to total memory manager heap</a>
+<span class="sourceLineNo">1070</span><a id="line.1070">   * size we'll allow before expanding the heap.</a>
+<span class="sourceLineNo">1071</span><a id="line.1071">   * @return The minimum free ratio.</a>
+<span class="sourceLineNo">1072</span><a id="line.1072">   * @see #setMinFreeRatio(double)</a>
+<span class="sourceLineNo">1073</span><a id="line.1073">   */</a>
+<span class="sourceLineNo">1074</span><a id="line.1074">  public double getMinFreeRatio()</a>
+<span class="sourceLineNo">1075</span><a id="line.1075">  {</a>
+<span class="sourceLineNo">1076</span><a id="line.1076">    return mMinFreeRatio*100;</a>
+<span class="sourceLineNo">1077</span><a id="line.1077">  }</a>
+<span class="sourceLineNo">1078</span><a id="line.1078"></a>
+<span class="sourceLineNo">1079</span><a id="line.1079">  private int sweepAndCollect()</a>
+<span class="sourceLineNo">1080</span><a id="line.1080">  {</a>
+<span class="sourceLineNo">1081</span><a id="line.1081">    // time to sweep, collect, and possibly grow.</a>
+<span class="sourceLineNo">1082</span><a id="line.1082">    JNIReference[] survivors = new JNIReference[mMaxValidReference];</a>
+<span class="sourceLineNo">1083</span><a id="line.1083">    int numSurvivors=0;</a>
+<span class="sourceLineNo">1084</span><a id="line.1084">    final int numValid = mMaxValidReference;</a>
+<span class="sourceLineNo">1085</span><a id="line.1085">    for(int i = 0; i &lt; numValid; i++)</a>
+<span class="sourceLineNo">1086</span><a id="line.1086">    {</a>
+<span class="sourceLineNo">1087</span><a id="line.1087">      JNIReference victim = mValidReferences[i];</a>
+<span class="sourceLineNo">1088</span><a id="line.1088">      if (victim != null &amp;&amp; !victim.isDeleted())</a>
+<span class="sourceLineNo">1089</span><a id="line.1089">      {</a>
+<span class="sourceLineNo">1090</span><a id="line.1090">        survivors[numSurvivors] = victim;</a>
+<span class="sourceLineNo">1091</span><a id="line.1091">        ++numSurvivors;</a>
+<span class="sourceLineNo">1092</span><a id="line.1092">      }</a>
+<span class="sourceLineNo">1093</span><a id="line.1093">    }</a>
+<span class="sourceLineNo">1094</span><a id="line.1094">    final int survivorLength = survivors.length;</a>
+<span class="sourceLineNo">1095</span><a id="line.1095">    int freeSpace = survivorLength - numSurvivors;</a>
+<span class="sourceLineNo">1096</span><a id="line.1096">    if (freeSpace &gt; survivorLength * mMaxFreeRatio)</a>
+<span class="sourceLineNo">1097</span><a id="line.1097">    {</a>
+<span class="sourceLineNo">1098</span><a id="line.1098">      // time to shrink</a>
+<span class="sourceLineNo">1099</span><a id="line.1099">      int newSize = (int) (survivorLength*(1.0 - mExpandIncrement*mShrinkScaleFactor));</a>
+<span class="sourceLineNo">1100</span><a id="line.1100">      // never shrink smaller than the minimum</a>
+<span class="sourceLineNo">1101</span><a id="line.1101">      if (newSize &gt;= mMinimumReferencesToCache) {</a>
+<span class="sourceLineNo">1102</span><a id="line.1102">        JNIReference[] shrunk = new JNIReference[newSize];</a>
+<span class="sourceLineNo">1103</span><a id="line.1103">        System.arraycopy(survivors, 0, shrunk, 0, newSize);</a>
+<span class="sourceLineNo">1104</span><a id="line.1104">        survivors = shrunk;</a>
+<span class="sourceLineNo">1105</span><a id="line.1105">      }</a>
+<span class="sourceLineNo">1106</span><a id="line.1106">    } else if (freeSpace &lt;= survivorLength*mMinFreeRatio)</a>
+<span class="sourceLineNo">1107</span><a id="line.1107">    {</a>
+<span class="sourceLineNo">1108</span><a id="line.1108">      // time to expand</a>
+<span class="sourceLineNo">1109</span><a id="line.1109">      int newSize = (int) (survivorLength*(1.0 + mExpandIncrement));</a>
+<span class="sourceLineNo">1110</span><a id="line.1110">      JNIReference[] expanded = new JNIReference[newSize];</a>
+<span class="sourceLineNo">1111</span><a id="line.1111">      System.arraycopy(survivors, 0, expanded, 0, survivorLength);</a>
+<span class="sourceLineNo">1112</span><a id="line.1112">      survivors = expanded;</a>
+<span class="sourceLineNo">1113</span><a id="line.1113">    }</a>
+<span class="sourceLineNo">1114</span><a id="line.1114">    // and swap in our new array</a>
+<span class="sourceLineNo">1115</span><a id="line.1115">    // ORDER REALLY MATTERS HERE.  See #addReference</a>
+<span class="sourceLineNo">1116</span><a id="line.1116">    mValidReferences = survivors;</a>
+<span class="sourceLineNo">1117</span><a id="line.1117">    mMaxValidReference = survivors.length;</a>
+<span class="sourceLineNo">1118</span><a id="line.1118">    mNextAvailableReferenceSlot = numSurvivors;</a>
+<span class="sourceLineNo">1119</span><a id="line.1119">    return numSurvivors;</a>
+<span class="sourceLineNo">1120</span><a id="line.1120">  }</a>
+<span class="sourceLineNo">1121</span><a id="line.1121"></a>
+<span class="sourceLineNo">1122</span><a id="line.1122">  /**</a>
+<span class="sourceLineNo">1123</span><a id="line.1123">   * The collection thread if running.</a>
+<span class="sourceLineNo">1124</span><a id="line.1124">   */</a>
+<span class="sourceLineNo">1125</span><a id="line.1125">  private volatile Thread mCollectionThread;</a>
+<span class="sourceLineNo">1126</span><a id="line.1126"></a>
+<span class="sourceLineNo">1127</span><a id="line.1127">  /**</a>
+<span class="sourceLineNo">1128</span><a id="line.1128">   * Get the underlying queue we track references with.</a>
+<span class="sourceLineNo">1129</span><a id="line.1129">   * </a>
+<span class="sourceLineNo">1130</span><a id="line.1130">   * @return The queue.</a>
+<span class="sourceLineNo">1131</span><a id="line.1131">   */</a>
+<span class="sourceLineNo">1132</span><a id="line.1132">  ReferenceQueue&lt;Object&gt; getQueue()</a>
+<span class="sourceLineNo">1133</span><a id="line.1133">  {</a>
+<span class="sourceLineNo">1134</span><a id="line.1134">    return mRefQueue;</a>
+<span class="sourceLineNo">1135</span><a id="line.1135">  }</a>
+<span class="sourceLineNo">1136</span><a id="line.1136"></a>
+<span class="sourceLineNo">1137</span><a id="line.1137">  /**</a>
+<span class="sourceLineNo">1138</span><a id="line.1138">   * Get the number of Ferry objects we believe are still in use.</a>
+<span class="sourceLineNo">1139</span><a id="line.1139">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1140</span><a id="line.1140">   * This may be different than what you think because the Java garbage</a>
+<span class="sourceLineNo">1141</span><a id="line.1141">   * collector may not have collected all objects yet.</a>
+<span class="sourceLineNo">1142</span><a id="line.1142">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1143</span><a id="line.1143">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1144</span><a id="line.1144">   * Also, this method needs to walk the entire ferry reference heap, so it</a>
+<span class="sourceLineNo">1145</span><a id="line.1145">   * can be expensive and not accurate (as the value may change even before</a>
+<span class="sourceLineNo">1146</span><a id="line.1146">   * this method returns).  Use only for debugging.</a>
+<span class="sourceLineNo">1147</span><a id="line.1147">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1148</span><a id="line.1148">   * @return number of ferry objects in use.</a>
+<span class="sourceLineNo">1149</span><a id="line.1149">   */</a>
+<span class="sourceLineNo">1150</span><a id="line.1150">  public long getNumPinnedObjects()</a>
+<span class="sourceLineNo">1151</span><a id="line.1151">  {</a>
+<span class="sourceLineNo">1152</span><a id="line.1152">    long numPinnedObjects = 0;</a>
+<span class="sourceLineNo">1153</span><a id="line.1153">    blockingLock();</a>
+<span class="sourceLineNo">1154</span><a id="line.1154">    try {</a>
+<span class="sourceLineNo">1155</span><a id="line.1155">      int numItems = mNextAvailableReferenceSlot;</a>
+<span class="sourceLineNo">1156</span><a id="line.1156">      for(int i = 0; i &lt; numItems; i++)</a>
+<span class="sourceLineNo">1157</span><a id="line.1157">      {</a>
+<span class="sourceLineNo">1158</span><a id="line.1158">        JNIReference ref = mValidReferences[i];</a>
+<span class="sourceLineNo">1159</span><a id="line.1159">        if (ref != null &amp;&amp; !ref.isDeleted())</a>
+<span class="sourceLineNo">1160</span><a id="line.1160">          ++numPinnedObjects;</a>
+<span class="sourceLineNo">1161</span><a id="line.1161">      }</a>
+<span class="sourceLineNo">1162</span><a id="line.1162">    } finally {</a>
+<span class="sourceLineNo">1163</span><a id="line.1163">      blockingUnlock();</a>
+<span class="sourceLineNo">1164</span><a id="line.1164">    }</a>
+<span class="sourceLineNo">1165</span><a id="line.1165">    return numPinnedObjects;</a>
+<span class="sourceLineNo">1166</span><a id="line.1166">  }</a>
+<span class="sourceLineNo">1167</span><a id="line.1167"></a>
+<span class="sourceLineNo">1168</span><a id="line.1168">  /**</a>
+<span class="sourceLineNo">1169</span><a id="line.1169">   * Dump the contents of our memory cache to the log.</a>
+<span class="sourceLineNo">1170</span><a id="line.1170">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1171</span><a id="line.1171">   * This method requires a global lock in order to run so only</a>
+<span class="sourceLineNo">1172</span><a id="line.1172">   * use for debugging.  </a>
+<span class="sourceLineNo">1173</span><a id="line.1173">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1174</span><a id="line.1174">   */</a>
+<span class="sourceLineNo">1175</span><a id="line.1175">  public void dumpMemoryLog()</a>
+<span class="sourceLineNo">1176</span><a id="line.1176">  {</a>
+<span class="sourceLineNo">1177</span><a id="line.1177">    blockingLock();</a>
+<span class="sourceLineNo">1178</span><a id="line.1178">    try {</a>
+<span class="sourceLineNo">1179</span><a id="line.1179">      int numItems = mNextAvailableReferenceSlot;</a>
+<span class="sourceLineNo">1180</span><a id="line.1180">      log.debug("Memory slots in use: {}", numItems);</a>
+<span class="sourceLineNo">1181</span><a id="line.1181">      for(int i = 0; i &lt; numItems; i++)</a>
+<span class="sourceLineNo">1182</span><a id="line.1182">      {</a>
+<span class="sourceLineNo">1183</span><a id="line.1183">        JNIReference ref = mValidReferences[i];</a>
+<span class="sourceLineNo">1184</span><a id="line.1184">        if (ref != null)</a>
+<span class="sourceLineNo">1185</span><a id="line.1185">          log.debug("Slot: {}; Ref: {}", i, ref);</a>
+<span class="sourceLineNo">1186</span><a id="line.1186">      }</a>
+<span class="sourceLineNo">1187</span><a id="line.1187">    } finally {</a>
+<span class="sourceLineNo">1188</span><a id="line.1188">      blockingUnlock();</a>
+<span class="sourceLineNo">1189</span><a id="line.1189">    }</a>
+<span class="sourceLineNo">1190</span><a id="line.1190">    return;</a>
+<span class="sourceLineNo">1191</span><a id="line.1191">  }</a>
+<span class="sourceLineNo">1192</span><a id="line.1192">  </a>
+<span class="sourceLineNo">1193</span><a id="line.1193">  /**</a>
+<span class="sourceLineNo">1194</span><a id="line.1194">   * Will object allocations contain debug information when allocated?</a>
+<span class="sourceLineNo">1195</span><a id="line.1195">   * @see #setMemoryDebugging(boolean)</a>
+<span class="sourceLineNo">1196</span><a id="line.1196">   */</a>
+<span class="sourceLineNo">1197</span><a id="line.1197">  public boolean isMemoryDebugging()</a>
+<span class="sourceLineNo">1198</span><a id="line.1198">  {</a>
+<span class="sourceLineNo">1199</span><a id="line.1199">    return JNIReference.isMemoryDebugging();</a>
+<span class="sourceLineNo">1200</span><a id="line.1200">  }</a>
+<span class="sourceLineNo">1201</span><a id="line.1201"></a>
+<span class="sourceLineNo">1202</span><a id="line.1202">  /**</a>
+<span class="sourceLineNo">1203</span><a id="line.1203">   * Set whether the {@link JNIMemoryManager} should cause objects</a>
+<span class="sourceLineNo">1204</span><a id="line.1204">   * to be allocated with debugging information.  This is false</a>
+<span class="sourceLineNo">1205</span><a id="line.1205">   * by default as it causes a slight performance hit per-allocation.</a>
+<span class="sourceLineNo">1206</span><a id="line.1206">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1207</span><a id="line.1207">   * If true, then each allocation after setting to true will remember</a>
+<span class="sourceLineNo">1208</span><a id="line.1208">   * the class of each object allocated, and the unique java hash</a>
+<span class="sourceLineNo">1209</span><a id="line.1209">   * code ({@link Object#hashCode()}) of each object allocated.  Then</a>
+<span class="sourceLineNo">1210</span><a id="line.1210">   * in calls to {@link #dumpMemoryLog()}, those classes and hash</a>
+<span class="sourceLineNo">1211</span><a id="line.1211">   * values will also be printed.</a>
+<span class="sourceLineNo">1212</span><a id="line.1212">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1213</span><a id="line.1213">   * @param value true to turn on memory debugging; false to turn it off.</a>
+<span class="sourceLineNo">1214</span><a id="line.1214">   */</a>
+<span class="sourceLineNo">1215</span><a id="line.1215">  public void setMemoryDebugging(boolean value)</a>
+<span class="sourceLineNo">1216</span><a id="line.1216">  {</a>
+<span class="sourceLineNo">1217</span><a id="line.1217">    JNIReference.setMemoryDebugging(value);</a>
+<span class="sourceLineNo">1218</span><a id="line.1218">  }</a>
+<span class="sourceLineNo">1219</span><a id="line.1219">  </a>
+<span class="sourceLineNo">1220</span><a id="line.1220">  /**</a>
+<span class="sourceLineNo">1221</span><a id="line.1221">   * A finalizer for the memory manager itself. It just calls internal garbage</a>
+<span class="sourceLineNo">1222</span><a id="line.1222">   * collections and then exits.</a>
+<span class="sourceLineNo">1223</span><a id="line.1223">   */</a>
+<span class="sourceLineNo">1224</span><a id="line.1224">  public void finalize()</a>
+<span class="sourceLineNo">1225</span><a id="line.1225">  {</a>
+<span class="sourceLineNo">1226</span><a id="line.1226">    /**</a>
+<span class="sourceLineNo">1227</span><a id="line.1227">     * </a>
+<span class="sourceLineNo">1228</span><a id="line.1228">     * This may end up "leaking" some memory if all Ferry objects have not</a>
+<span class="sourceLineNo">1229</span><a id="line.1229">     * otherwise been collected, but this is not a huge problem for most</a>
+<span class="sourceLineNo">1230</span><a id="line.1230">     * applications, as it's only called when the class loader is exiting.</a>
+<span class="sourceLineNo">1231</span><a id="line.1231">     */</a>
+<span class="sourceLineNo">1232</span><a id="line.1232">    gc();</a>
+<span class="sourceLineNo">1233</span><a id="line.1233">  }</a>
+<span class="sourceLineNo">1234</span><a id="line.1234"></a>
+<span class="sourceLineNo">1235</span><a id="line.1235">  /**</a>
+<span class="sourceLineNo">1236</span><a id="line.1236">   * Add a reference to the set of references we'll collect.</a>
+<span class="sourceLineNo">1237</span><a id="line.1237">   * </a>
+<span class="sourceLineNo">1238</span><a id="line.1238">   * @param ref The reference to collect.</a>
+<span class="sourceLineNo">1239</span><a id="line.1239">   * @return true if already in list; false otherwise.</a>
+<span class="sourceLineNo">1240</span><a id="line.1240">   */</a>
+<span class="sourceLineNo">1241</span><a id="line.1241">  final boolean addReference(final JNIReference ref)</a>
+<span class="sourceLineNo">1242</span><a id="line.1242">  {</a>
+<span class="sourceLineNo">1243</span><a id="line.1243">    /* Implementation note: This method is extremely</a>
+<span class="sourceLineNo">1244</span><a id="line.1244">     * hot, and so I've unrolled the lock and unlock</a>
+<span class="sourceLineNo">1245</span><a id="line.1245">     * methods from above.  Take care if you change</a>
+<span class="sourceLineNo">1246</span><a id="line.1246">     * them to change the unrolled versions here.</a>
+<span class="sourceLineNo">1247</span><a id="line.1247">     * </a>
+<span class="sourceLineNo">1248</span><a id="line.1248">     */</a>
+<span class="sourceLineNo">1249</span><a id="line.1249">    // First try to grab the non blocking lock</a>
+<span class="sourceLineNo">1250</span><a id="line.1250">    boolean gotNonblockingLock = false;</a>
+<span class="sourceLineNo">1251</span><a id="line.1251">    gotNonblockingLock = mSpinLock.compareAndSet(false, true);</a>
+<span class="sourceLineNo">1252</span><a id="line.1252">    if (gotNonblockingLock)</a>
+<span class="sourceLineNo">1253</span><a id="line.1253">    {</a>
+<span class="sourceLineNo">1254</span><a id="line.1254">      final int slot = mNextAvailableReferenceSlot++;</a>
+<span class="sourceLineNo">1255</span><a id="line.1255">      if (slot &lt; mMaxValidReference)</a>
+<span class="sourceLineNo">1256</span><a id="line.1256">      {</a>
+<span class="sourceLineNo">1257</span><a id="line.1257">        mValidReferences[slot] = ref;</a>
+<span class="sourceLineNo">1258</span><a id="line.1258">        // unlock the non-blocking lock, and progress to a full lock.</a>
+<span class="sourceLineNo">1259</span><a id="line.1259">        final boolean result = mSpinLock.compareAndSet(true, false);</a>
+<span class="sourceLineNo">1260</span><a id="line.1260">        assert result : "Should never be unlocked here";</a>
+<span class="sourceLineNo">1261</span><a id="line.1261">        return true;</a>
+<span class="sourceLineNo">1262</span><a id="line.1262">      }</a>
+<span class="sourceLineNo">1263</span><a id="line.1263">      // try the big lock without blocking</a>
+<span class="sourceLineNo">1264</span><a id="line.1264">      if (!mLock.tryLock()) {</a>
+<span class="sourceLineNo">1265</span><a id="line.1265">        // we couldn't get the big lock, so release the spin lock</a>
+<span class="sourceLineNo">1266</span><a id="line.1266">        // and try getting the bit lock while blocking</a>
+<span class="sourceLineNo">1267</span><a id="line.1267">        gotNonblockingLock = false;</a>
+<span class="sourceLineNo">1268</span><a id="line.1268">        mSpinLock.compareAndSet(true, false);</a>
+<span class="sourceLineNo">1269</span><a id="line.1269">      }</a>
+<span class="sourceLineNo">1270</span><a id="line.1270">    }</a>
+<span class="sourceLineNo">1271</span><a id="line.1271">    // The above code needs to make sure that we never</a>
+<span class="sourceLineNo">1272</span><a id="line.1272">    // have gotNonblockingLock set, unless we have both</a>
+<span class="sourceLineNo">1273</span><a id="line.1273">    // the spin lock and the big lock.</a>
+<span class="sourceLineNo">1274</span><a id="line.1274">    if (!gotNonblockingLock){</a>
+<span class="sourceLineNo">1275</span><a id="line.1275">      mLock.lock();</a>
+<span class="sourceLineNo">1276</span><a id="line.1276">      while(!mSpinLock.compareAndSet(false, true))</a>
+<span class="sourceLineNo">1277</span><a id="line.1277">        ; // grab the spin lock</a>
+<span class="sourceLineNo">1278</span><a id="line.1278">    }</a>
+<span class="sourceLineNo">1279</span><a id="line.1279">    try {</a>
+<span class="sourceLineNo">1280</span><a id="line.1280">      int slot = mNextAvailableReferenceSlot++;</a>
+<span class="sourceLineNo">1281</span><a id="line.1281">      if (slot &gt;= mMaxValidReference)</a>
+<span class="sourceLineNo">1282</span><a id="line.1282">      {</a>
+<span class="sourceLineNo">1283</span><a id="line.1283">        sweepAndCollect();</a>
+<span class="sourceLineNo">1284</span><a id="line.1284">        slot = mNextAvailableReferenceSlot++;</a>
+<span class="sourceLineNo">1285</span><a id="line.1285">      }</a>
+<span class="sourceLineNo">1286</span><a id="line.1286">      mValidReferences[slot] = ref;</a>
+<span class="sourceLineNo">1287</span><a id="line.1287">    } finally {</a>
+<span class="sourceLineNo">1288</span><a id="line.1288">      final boolean result = mSpinLock.compareAndSet(true, false);</a>
+<span class="sourceLineNo">1289</span><a id="line.1289">      assert result : "Should never ever be unlocked here";</a>
+<span class="sourceLineNo">1290</span><a id="line.1290">      mLock.unlock();</a>
+<span class="sourceLineNo">1291</span><a id="line.1291">    }</a>
+<span class="sourceLineNo">1292</span><a id="line.1292">    return true;</a>
+<span class="sourceLineNo">1293</span><a id="line.1293">  }</a>
+<span class="sourceLineNo">1294</span><a id="line.1294"></a>
+<span class="sourceLineNo">1295</span><a id="line.1295">  /**</a>
+<span class="sourceLineNo">1296</span><a id="line.1296">   * Do a Ferry Garbage Collection.</a>
+<span class="sourceLineNo">1297</span><a id="line.1297">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1298</span><a id="line.1298">   * This takes all Ferry objects that are no longer reachable and deletes the</a>
+<span class="sourceLineNo">1299</span><a id="line.1299">   * underlying native memory. It is called every time you allocate a new Ferry</a>
+<span class="sourceLineNo">1300</span><a id="line.1300">   * object to ensure Ferry is freeing up native objects as soon as possible</a>
+<span class="sourceLineNo">1301</span><a id="line.1301">   * (rather than waiting for the potentially slow finalizer thread). It is also</a>
+<span class="sourceLineNo">1302</span><a id="line.1302">   * called via a finalizer on an object that is referenced by the Ferry'ed</a>
+<span class="sourceLineNo">1303</span><a id="line.1303">   * object (that way, the earlier of the next Ferry allocation, or the</a>
+<span class="sourceLineNo">1304</span><a id="line.1304">   * finalizer thread, frees up unused native memory). Lastly, you can use</a>
+<span class="sourceLineNo">1305</span><a id="line.1305">   * {@link #startCollectionThread()} to start up a thread to call this</a>
+<span class="sourceLineNo">1306</span><a id="line.1306">   * automagically for you (and that thread will exit when your JVM exits).</a>
+<span class="sourceLineNo">1307</span><a id="line.1307">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1308</span><a id="line.1308">   */</a>
+<span class="sourceLineNo">1309</span><a id="line.1309">  public void gc()</a>
+<span class="sourceLineNo">1310</span><a id="line.1310">  {</a>
+<span class="sourceLineNo">1311</span><a id="line.1311">    gc(false);</a>
+<span class="sourceLineNo">1312</span><a id="line.1312">  }</a>
+<span class="sourceLineNo">1313</span><a id="line.1313"></a>
+<span class="sourceLineNo">1314</span><a id="line.1314">  /**</a>
+<span class="sourceLineNo">1315</span><a id="line.1315">   * Does a Ferry Garbage Collection, and also sweeps our internal</a>
+<span class="sourceLineNo">1316</span><a id="line.1316">   * {@link JNIReference} heap to remove any lightweight references we may</a>
+<span class="sourceLineNo">1317</span><a id="line.1317">   * have left around.</a>
+<span class="sourceLineNo">1318</span><a id="line.1318">   * @param doSweep if true, we sweep the heap.  This involves a global lock</a>
+<span class="sourceLineNo">1319</span><a id="line.1319">   *   and so should be used sparingly.</a>
+<span class="sourceLineNo">1320</span><a id="line.1320">   */</a>
+<span class="sourceLineNo">1321</span><a id="line.1321">  public void gc(boolean doSweep)</a>
+<span class="sourceLineNo">1322</span><a id="line.1322">  {</a>
+<span class="sourceLineNo">1323</span><a id="line.1323">    gcInternal();</a>
+<span class="sourceLineNo">1324</span><a id="line.1324">    if (doSweep) {</a>
+<span class="sourceLineNo">1325</span><a id="line.1325">      blockingLock();</a>
+<span class="sourceLineNo">1326</span><a id="line.1326">      try {</a>
+<span class="sourceLineNo">1327</span><a id="line.1327">        sweepAndCollect();</a>
+<span class="sourceLineNo">1328</span><a id="line.1328">      } finally {</a>
+<span class="sourceLineNo">1329</span><a id="line.1329">        blockingUnlock();</a>
+<span class="sourceLineNo">1330</span><a id="line.1330">      }</a>
+<span class="sourceLineNo">1331</span><a id="line.1331">    }</a>
+<span class="sourceLineNo">1332</span><a id="line.1332">  }</a>
+<span class="sourceLineNo">1333</span><a id="line.1333">  /**</a>
+<span class="sourceLineNo">1334</span><a id="line.1334">   * The actual GC; </a>
+<span class="sourceLineNo">1335</span><a id="line.1335">   */</a>
+<span class="sourceLineNo">1336</span><a id="line.1336">  void gcInternal()</a>
+<span class="sourceLineNo">1337</span><a id="line.1337">  {</a>
+<span class="sourceLineNo">1338</span><a id="line.1338">    JNIReference ref = null;</a>
+<span class="sourceLineNo">1339</span><a id="line.1339">    while ((ref = (JNIReference) mRefQueue.poll()) != null)</a>
+<span class="sourceLineNo">1340</span><a id="line.1340">    {</a>
+<span class="sourceLineNo">1341</span><a id="line.1341">      ref.delete();</a>
+<span class="sourceLineNo">1342</span><a id="line.1342">    }</a>
+<span class="sourceLineNo">1343</span><a id="line.1343">  }</a>
+<span class="sourceLineNo">1344</span><a id="line.1344"></a>
+<span class="sourceLineNo">1345</span><a id="line.1345">  /**</a>
+<span class="sourceLineNo">1346</span><a id="line.1346">   * Starts a new Ferry collection thread that will wake up whenever a memory</a>
+<span class="sourceLineNo">1347</span><a id="line.1347">   * reference needs clean-up from native code.</a>
+<span class="sourceLineNo">1348</span><a id="line.1348">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1349</span><a id="line.1349">   * This thread is not started by default as Ferry calls {@link #gc()}</a>
+<span class="sourceLineNo">1350</span><a id="line.1350">   * internally whenever a new Ferry object is allocated. But if you're</a>
+<span class="sourceLineNo">1351</span><a id="line.1351">   * caching Ferry objects and hence avoiding new allocations, you may want to</a>
+<span class="sourceLineNo">1352</span><a id="line.1352">   * call this to ensure all objects are promptly collected.</a>
+<span class="sourceLineNo">1353</span><a id="line.1353">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1354</span><a id="line.1354">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1355</span><a id="line.1355">   * This call is ignored if the collection thread is already running.</a>
+<span class="sourceLineNo">1356</span><a id="line.1356">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1357</span><a id="line.1357">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1358</span><a id="line.1358">   * The thread can be stopped by calling {@link #stopCollectionThread()}, and</a>
+<span class="sourceLineNo">1359</span><a id="line.1359">   * will also exit if interrupted by Java.</a>
+<span class="sourceLineNo">1360</span><a id="line.1360">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1361</span><a id="line.1361">   */</a>
+<span class="sourceLineNo">1362</span><a id="line.1362">  public void startCollectionThread()</a>
+<span class="sourceLineNo">1363</span><a id="line.1363">  {</a>
+<span class="sourceLineNo">1364</span><a id="line.1364">    synchronized (this)</a>
+<span class="sourceLineNo">1365</span><a id="line.1365">    {</a>
+<span class="sourceLineNo">1366</span><a id="line.1366">      if (mCollectionThread != null)</a>
+<span class="sourceLineNo">1367</span><a id="line.1367">        throw new RuntimeException("Thread already running");</a>
+<span class="sourceLineNo">1368</span><a id="line.1368"></a>
+<span class="sourceLineNo">1369</span><a id="line.1369">      mCollectionThread = new Thread(new Runnable()</a>
+<span class="sourceLineNo">1370</span><a id="line.1370">      {</a>
+<span class="sourceLineNo">1371</span><a id="line.1371"></a>
+<span class="sourceLineNo">1372</span><a id="line.1372">        public void run()</a>
+<span class="sourceLineNo">1373</span><a id="line.1373">        {</a>
+<span class="sourceLineNo">1374</span><a id="line.1374">          JNIReference ref = null;</a>
+<span class="sourceLineNo">1375</span><a id="line.1375">          try</a>
+<span class="sourceLineNo">1376</span><a id="line.1376">          {</a>
+<span class="sourceLineNo">1377</span><a id="line.1377">            while (true)</a>
+<span class="sourceLineNo">1378</span><a id="line.1378">            {</a>
+<span class="sourceLineNo">1379</span><a id="line.1379">              ref = (JNIReference) mRefQueue.remove();</a>
+<span class="sourceLineNo">1380</span><a id="line.1380">              if (ref != null)</a>
+<span class="sourceLineNo">1381</span><a id="line.1381">                ref.delete();</a>
+<span class="sourceLineNo">1382</span><a id="line.1382">            }</a>
+<span class="sourceLineNo">1383</span><a id="line.1383">          }</a>
+<span class="sourceLineNo">1384</span><a id="line.1384">          catch (InterruptedException ex)</a>
+<span class="sourceLineNo">1385</span><a id="line.1385">          {</a>
+<span class="sourceLineNo">1386</span><a id="line.1386">            synchronized (JNIMemoryManager.this)</a>
+<span class="sourceLineNo">1387</span><a id="line.1387">            {</a>
+<span class="sourceLineNo">1388</span><a id="line.1388">              mCollectionThread = null;</a>
+<span class="sourceLineNo">1389</span><a id="line.1389">              // reset the interruption</a>
+<span class="sourceLineNo">1390</span><a id="line.1390">              Thread.currentThread().interrupt();</a>
+<span class="sourceLineNo">1391</span><a id="line.1391">            }</a>
+<span class="sourceLineNo">1392</span><a id="line.1392">            return;</a>
+<span class="sourceLineNo">1393</span><a id="line.1393">          }</a>
+<span class="sourceLineNo">1394</span><a id="line.1394"></a>
+<span class="sourceLineNo">1395</span><a id="line.1395">        }</a>
+<span class="sourceLineNo">1396</span><a id="line.1396">      }, "AVPKit Ferry Collection Thread");</a>
+<span class="sourceLineNo">1397</span><a id="line.1397">      mCollectionThread.setDaemon(true);</a>
+<span class="sourceLineNo">1398</span><a id="line.1398">      mCollectionThread.start();</a>
+<span class="sourceLineNo">1399</span><a id="line.1399">    }</a>
+<span class="sourceLineNo">1400</span><a id="line.1400">  }</a>
+<span class="sourceLineNo">1401</span><a id="line.1401"></a>
+<span class="sourceLineNo">1402</span><a id="line.1402">  /**</a>
+<span class="sourceLineNo">1403</span><a id="line.1403">   * Stops the Ferry collection thread if running. This does nothing if no</a>
+<span class="sourceLineNo">1404</span><a id="line.1404">   * collection thread is running.</a>
+<span class="sourceLineNo">1405</span><a id="line.1405">   */</a>
+<span class="sourceLineNo">1406</span><a id="line.1406">  public void stopCollectionThread()</a>
+<span class="sourceLineNo">1407</span><a id="line.1407">  {</a>
+<span class="sourceLineNo">1408</span><a id="line.1408">    synchronized (this)</a>
+<span class="sourceLineNo">1409</span><a id="line.1409">    {</a>
+<span class="sourceLineNo">1410</span><a id="line.1410">      if (mCollectionThread != null)</a>
+<span class="sourceLineNo">1411</span><a id="line.1411">        mCollectionThread.interrupt();</a>
+<span class="sourceLineNo">1412</span><a id="line.1412">    }</a>
+<span class="sourceLineNo">1413</span><a id="line.1413">  }</a>
+<span class="sourceLineNo">1414</span><a id="line.1414"></a>
+<span class="sourceLineNo">1415</span><a id="line.1415">  /**</a>
+<span class="sourceLineNo">1416</span><a id="line.1416">   * Get the {@link MemoryModel} that Ferry is using for allocating large memory</a>
+<span class="sourceLineNo">1417</span><a id="line.1417">   * blocks.</a>
+<span class="sourceLineNo">1418</span><a id="line.1418">   * </a>
+<span class="sourceLineNo">1419</span><a id="line.1419">   * @return the memory model currently being used.</a>
+<span class="sourceLineNo">1420</span><a id="line.1420">   * </a>
+<span class="sourceLineNo">1421</span><a id="line.1421">   * @see MemoryModel</a>
+<span class="sourceLineNo">1422</span><a id="line.1422">   */</a>
+<span class="sourceLineNo">1423</span><a id="line.1423">  public static MemoryModel getMemoryModel()</a>
+<span class="sourceLineNo">1424</span><a id="line.1424">  {</a>
+<span class="sourceLineNo">1425</span><a id="line.1425">    return mMemoryModel;</a>
+<span class="sourceLineNo">1426</span><a id="line.1426">  }</a>
+<span class="sourceLineNo">1427</span><a id="line.1427"></a>
+<span class="sourceLineNo">1428</span><a id="line.1428">  /**</a>
+<span class="sourceLineNo">1429</span><a id="line.1429">   * Sets the {@link MemoryModel}.</a>
+<span class="sourceLineNo">1430</span><a id="line.1430">   * &lt;p&gt;</a>
+<span class="sourceLineNo">1431</span><a id="line.1431">   * Only call once per process; Calling more than once has an unspecified</a>
+<span class="sourceLineNo">1432</span><a id="line.1432">   * effect.</a>
+<span class="sourceLineNo">1433</span><a id="line.1433">   * &lt;/p&gt;</a>
+<span class="sourceLineNo">1434</span><a id="line.1434">   * </a>
+<span class="sourceLineNo">1435</span><a id="line.1435">   * @param model The model you want to use.</a>
+<span class="sourceLineNo">1436</span><a id="line.1436">   * </a>
+<span class="sourceLineNo">1437</span><a id="line.1437">   * @see #getMemoryModel()</a>
+<span class="sourceLineNo">1438</span><a id="line.1438">   * @see MemoryModel</a>
+<span class="sourceLineNo">1439</span><a id="line.1439">   */</a>
+<span class="sourceLineNo">1440</span><a id="line.1440">  public static void setMemoryModel(MemoryModel model)</a>
+<span class="sourceLineNo">1441</span><a id="line.1441">  {</a>
+<span class="sourceLineNo">1442</span><a id="line.1442">    FerryJNI.setMemoryModel(model.getNativeValue());</a>
+<span class="sourceLineNo">1443</span><a id="line.1443">    mMemoryModel = model;</a>
+<span class="sourceLineNo">1444</span><a id="line.1444">  }</a>
+<span class="sourceLineNo">1445</span><a id="line.1445"></a>
+<span class="sourceLineNo">1446</span><a id="line.1446">  /**</a>
+<span class="sourceLineNo">1447</span><a id="line.1447">   * Internal Only.</a>
+<span class="sourceLineNo">1448</span><a id="line.1448">   * </a>
+<span class="sourceLineNo">1449</span><a id="line.1449">   * Immediately frees all active objects in the system. Do not call unless you</a>
+<span class="sourceLineNo">1450</span><a id="line.1450">   * REALLY know what you're doing.</a>
+<span class="sourceLineNo">1451</span><a id="line.1451">   */</a>
+<span class="sourceLineNo">1452</span><a id="line.1452">  final public void flush()</a>
+<span class="sourceLineNo">1453</span><a id="line.1453">  {</a>
+<span class="sourceLineNo">1454</span><a id="line.1454">    blockingLock();</a>
+<span class="sourceLineNo">1455</span><a id="line.1455">    try {</a>
+<span class="sourceLineNo">1456</span><a id="line.1456">      int numSurvivors = sweepAndCollect();</a>
+<span class="sourceLineNo">1457</span><a id="line.1457">      for(int i = 0; i &lt; numSurvivors; i++)</a>
+<span class="sourceLineNo">1458</span><a id="line.1458">      {</a>
+<span class="sourceLineNo">1459</span><a id="line.1459">        final JNIReference ref = mValidReferences[i];</a>
+<span class="sourceLineNo">1460</span><a id="line.1460">        if (ref != null)</a>
+<span class="sourceLineNo">1461</span><a id="line.1461">          ref.delete();</a>
+<span class="sourceLineNo">1462</span><a id="line.1462">      }</a>
+<span class="sourceLineNo">1463</span><a id="line.1463">      sweepAndCollect();</a>
+<span class="sourceLineNo">1464</span><a id="line.1464">      // finally, reset the valid references to the minimum</a>
+<span class="sourceLineNo">1465</span><a id="line.1465">      mValidReferences = new JNIReference[mMinimumReferencesToCache];</a>
+<span class="sourceLineNo">1466</span><a id="line.1466">      mNextAvailableReferenceSlot = 0;</a>
+<span class="sourceLineNo">1467</span><a id="line.1467">      mMaxValidReference = mMinimumReferencesToCache;</a>
+<span class="sourceLineNo">1468</span><a id="line.1468">    } finally {</a>
+<span class="sourceLineNo">1469</span><a id="line.1469">      blockingUnlock();</a>
+<span class="sourceLineNo">1470</span><a id="line.1470">    }</a>
+<span class="sourceLineNo">1471</span><a id="line.1471">  }</a>
+<span class="sourceLineNo">1472</span><a id="line.1472"></a>
+<span class="sourceLineNo">1473</span><a id="line.1473">}</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</main>
+</body>
+</html>

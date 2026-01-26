@@ -1,0 +1,185 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<main role="main">
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span><a id="line.1">/*******************************************************************************</a>
+<span class="sourceLineNo">002</span><a id="line.2"> * Copyright (c) 2024, 2026, Olivier Ayache.  All rights reserved.</a>
+<span class="sourceLineNo">003</span><a id="line.3"> *</a>
+<span class="sourceLineNo">004</span><a id="line.4"> * This file is part of AVPKit.</a>
+<span class="sourceLineNo">005</span><a id="line.5"> *</a>
+<span class="sourceLineNo">006</span><a id="line.6"> * AVPKit is free software: you can redistribute it and/or modify</a>
+<span class="sourceLineNo">007</span><a id="line.7"> * it under the terms of the GNU Lesser General Public License as published by</a>
+<span class="sourceLineNo">008</span><a id="line.8"> * the Free Software Foundation, either version 3 of the License, or</a>
+<span class="sourceLineNo">009</span><a id="line.9"> * (at your option) any later version.</a>
+<span class="sourceLineNo">010</span><a id="line.10"> *</a>
+<span class="sourceLineNo">011</span><a id="line.11"> * AVPKit is distributed in the hope that it will be useful,</a>
+<span class="sourceLineNo">012</span><a id="line.12"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</a>
+<span class="sourceLineNo">013</span><a id="line.13"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</a>
+<span class="sourceLineNo">014</span><a id="line.14"> * GNU Lesser General Public License for more details.</a>
+<span class="sourceLineNo">015</span><a id="line.15"> *</a>
+<span class="sourceLineNo">016</span><a id="line.16"> * You should have received a copy of the GNU Lesser General Public License</a>
+<span class="sourceLineNo">017</span><a id="line.17"> * along with AVPKit.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</a>
+<span class="sourceLineNo">018</span><a id="line.18"> *******************************************************************************/</a>
+<span class="sourceLineNo">019</span><a id="line.19"></a>
+<span class="sourceLineNo">020</span><a id="line.20">package com.avpkit.core.demos;</a>
+<span class="sourceLineNo">021</span><a id="line.21"></a>
+<span class="sourceLineNo">022</span><a id="line.22">import com.avpkit.core.Configuration;</a>
+<span class="sourceLineNo">023</span><a id="line.23">import com.avpkit.core.Global;</a>
+<span class="sourceLineNo">024</span><a id="line.24">import com.avpkit.core.ICodec;</a>
+<span class="sourceLineNo">025</span><a id="line.25">import com.avpkit.core.IContainer;</a>
+<span class="sourceLineNo">026</span><a id="line.26">import com.avpkit.core.IStream;</a>
+<span class="sourceLineNo">027</span><a id="line.27">import com.avpkit.core.IStreamCoder;</a>
+<span class="sourceLineNo">028</span><a id="line.28"></a>
+<span class="sourceLineNo">029</span><a id="line.29">/**</a>
+<span class="sourceLineNo">030</span><a id="line.30"> * Opens up a media container, and prints out a summary of the contents.</a>
+<span class="sourceLineNo">031</span><a id="line.31"> * </a>
+<span class="sourceLineNo">032</span><a id="line.32"> * If you pass -Davpkit.options we'll also tell you what every</a>
+<span class="sourceLineNo">033</span><a id="line.33"> * configurable option on the container and streams is set to.</a>
+<span class="sourceLineNo">034</span><a id="line.34"> * </a>
+<span class="sourceLineNo">035</span><a id="line.35"> * @author aclarke</a>
+<span class="sourceLineNo">036</span><a id="line.36"> *</a>
+<span class="sourceLineNo">037</span><a id="line.37"> */</a>
+<span class="sourceLineNo">038</span><a id="line.38">public class GetContainerInfo</a>
+<span class="sourceLineNo">039</span><a id="line.39">{</a>
+<span class="sourceLineNo">040</span><a id="line.40">  /**</a>
+<span class="sourceLineNo">041</span><a id="line.41">   * Takes a media container (file) as the first argument, opens it, and tells you what's inside the container.</a>
+<span class="sourceLineNo">042</span><a id="line.42">   * @param args Must contain one string which represents a filename</a>
+<span class="sourceLineNo">043</span><a id="line.43">   */</a>
+<span class="sourceLineNo">044</span><a id="line.44">  public static void main(String[] args)</a>
+<span class="sourceLineNo">045</span><a id="line.45">  {</a>
+<span class="sourceLineNo">046</span><a id="line.46">    // If the user passes -Davpkit.options, then we print</a>
+<span class="sourceLineNo">047</span><a id="line.47">    // out all possible options as well.</a>
+<span class="sourceLineNo">048</span><a id="line.48">    String optionString = System.getProperty("avpkit.options");</a>
+<span class="sourceLineNo">049</span><a id="line.49">    if (optionString != null)</a>
+<span class="sourceLineNo">050</span><a id="line.50">    {</a>
+<span class="sourceLineNo">051</span><a id="line.51">      Configuration.printHelp(System.out);</a>
+<span class="sourceLineNo">052</span><a id="line.52">    }</a>
+<span class="sourceLineNo">053</span><a id="line.53"></a>
+<span class="sourceLineNo">054</span><a id="line.54">    if (args.length &lt;= 0)</a>
+<span class="sourceLineNo">055</span><a id="line.55">      throw new IllegalArgumentException("must pass in a filename as the first argument");</a>
+<span class="sourceLineNo">056</span><a id="line.56">    </a>
+<span class="sourceLineNo">057</span><a id="line.57">    String filename = args[0];</a>
+<span class="sourceLineNo">058</span><a id="line.58">    // Create a AVPKit container object</a>
+<span class="sourceLineNo">059</span><a id="line.59">    IContainer container = IContainer.make();</a>
+<span class="sourceLineNo">060</span><a id="line.60">    </a>
+<span class="sourceLineNo">061</span><a id="line.61">    // Open up the container</a>
+<span class="sourceLineNo">062</span><a id="line.62">    if (container.open(filename, IContainer.Type.READ, null) &lt; 0)</a>
+<span class="sourceLineNo">063</span><a id="line.63">      throw new IllegalArgumentException("could not open file: " + filename);</a>
+<span class="sourceLineNo">064</span><a id="line.64">    </a>
+<span class="sourceLineNo">065</span><a id="line.65">    // query how many streams the call to open found</a>
+<span class="sourceLineNo">066</span><a id="line.66">    int numStreams = container.getNumStreams();</a>
+<span class="sourceLineNo">067</span><a id="line.67">    System.out.printf("file \"%s\": %d stream%s; ",</a>
+<span class="sourceLineNo">068</span><a id="line.68">        filename,</a>
+<span class="sourceLineNo">069</span><a id="line.69">        numStreams,</a>
+<span class="sourceLineNo">070</span><a id="line.70">        numStreams == 1 ? "" : "s");</a>
+<span class="sourceLineNo">071</span><a id="line.71">    System.out.printf("duration (ms): %s; ", container.getDuration() == Global.NO_PTS ? "unknown" : "" + container.getDuration()/1000);</a>
+<span class="sourceLineNo">072</span><a id="line.72">    System.out.printf("start time (ms): %s; ", container.getStartTime() == Global.NO_PTS ? "unknown" : "" + container.getStartTime()/1000);</a>
+<span class="sourceLineNo">073</span><a id="line.73">    System.out.printf("file size (bytes): %d; ", container.getFileSize());</a>
+<span class="sourceLineNo">074</span><a id="line.74">    System.out.printf("bit rate: %d; ", container.getBitRate());</a>
+<span class="sourceLineNo">075</span><a id="line.75">    System.out.printf("\n");</a>
+<span class="sourceLineNo">076</span><a id="line.76"></a>
+<span class="sourceLineNo">077</span><a id="line.77">    // and iterate through the streams to print their meta data</a>
+<span class="sourceLineNo">078</span><a id="line.78">    for(int i = 0; i &lt; numStreams; i++)</a>
+<span class="sourceLineNo">079</span><a id="line.79">    {</a>
+<span class="sourceLineNo">080</span><a id="line.80">      // Find the stream object</a>
+<span class="sourceLineNo">081</span><a id="line.81">      IStream stream = container.getStream(i);</a>
+<span class="sourceLineNo">082</span><a id="line.82">      // Get the pre-configured decoder that can decode this stream;</a>
+<span class="sourceLineNo">083</span><a id="line.83">      IStreamCoder coder = stream.getStreamCoder();</a>
+<span class="sourceLineNo">084</span><a id="line.84">      </a>
+<span class="sourceLineNo">085</span><a id="line.85">      // and now print out the meta data.</a>
+<span class="sourceLineNo">086</span><a id="line.86">      System.out.printf("stream %d: ",    i);</a>
+<span class="sourceLineNo">087</span><a id="line.87">      System.out.printf("type: %s; ",     coder.getCodecType());</a>
+<span class="sourceLineNo">088</span><a id="line.88">      System.out.printf("codec: %s; ",    coder.getCodecID());</a>
+<span class="sourceLineNo">089</span><a id="line.89">      System.out.printf("duration: %s; ", stream.getDuration() == Global.NO_PTS ? "unknown" : "" + stream.getDuration());</a>
+<span class="sourceLineNo">090</span><a id="line.90">      System.out.printf("start time: %s; ", container.getStartTime() == Global.NO_PTS ? "unknown" : "" + stream.getStartTime());</a>
+<span class="sourceLineNo">091</span><a id="line.91">      System.out.printf("language: %s; ", stream.getLanguage() == null ? "unknown" : stream.getLanguage());</a>
+<span class="sourceLineNo">092</span><a id="line.92">      System.out.printf("timebase: %d/%d; ", stream.getTimeBase().getNumerator(), stream.getTimeBase().getDenominator());</a>
+<span class="sourceLineNo">093</span><a id="line.93">      System.out.printf("coder tb: %d/%d; ", coder.getTimeBase().getNumerator(), coder.getTimeBase().getDenominator());</a>
+<span class="sourceLineNo">094</span><a id="line.94">      </a>
+<span class="sourceLineNo">095</span><a id="line.95">      if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)</a>
+<span class="sourceLineNo">096</span><a id="line.96">      {</a>
+<span class="sourceLineNo">097</span><a id="line.97">        System.out.printf("sample rate: %d; ", coder.getSampleRate());</a>
+<span class="sourceLineNo">098</span><a id="line.98">        System.out.printf("channels: %d; ",    coder.getChannels());</a>
+<span class="sourceLineNo">099</span><a id="line.99">        System.out.printf("format: %s",        coder.getSampleFormat());</a>
+<span class="sourceLineNo">100</span><a id="line.100">      } else if (coder.getCodecType() == ICodec.Type.CODEC_TYPE_VIDEO)</a>
+<span class="sourceLineNo">101</span><a id="line.101">      {</a>
+<span class="sourceLineNo">102</span><a id="line.102">        System.out.printf("width: %d; ",  coder.getWidth());</a>
+<span class="sourceLineNo">103</span><a id="line.103">        System.out.printf("height: %d; ", coder.getHeight());</a>
+<span class="sourceLineNo">104</span><a id="line.104">        System.out.printf("format: %s; ", coder.getPixelType());</a>
+<span class="sourceLineNo">105</span><a id="line.105">        System.out.printf("frame-rate: %5.2f; ", coder.getFrameRate().getDouble());</a>
+<span class="sourceLineNo">106</span><a id="line.106">      }</a>
+<span class="sourceLineNo">107</span><a id="line.107">      System.out.printf("\n");</a>
+<span class="sourceLineNo">108</span><a id="line.108">    }</a>
+<span class="sourceLineNo">109</span><a id="line.109">    </a>
+<span class="sourceLineNo">110</span><a id="line.110">  }</a>
+<span class="sourceLineNo">111</span><a id="line.111">}</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</main>
+</body>
+</html>

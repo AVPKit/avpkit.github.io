@@ -1,0 +1,5 @@
+<map id="com::avpkit::ferry::Mutex" name="com::avpkit::ferry::Mutex">
+<area shape="rect" id="node1" title="Internal Only." alt="" coords="5,200,144,241"/>
+<area shape="rect" id="node2" href="$classcom_1_1avpkit_1_1ferry_1_1RefCounted.html" title="Parent of all Ferry objects – it mains reference counts in native code." alt="" coords="5,109,144,151"/>
+<area shape="rect" id="node3" href="$classcom_1_1avpkit_1_1ferry_1_1AtomicInteger.html" title="Internal only." alt="" coords="5,5,144,47"/>
+</map>

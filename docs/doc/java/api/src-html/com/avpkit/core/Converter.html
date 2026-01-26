@@ -1,0 +1,1614 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<main role="main">
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span><a id="line.1">/*******************************************************************************</a>
+<span class="sourceLineNo">002</span><a id="line.2"> * Copyright (c) 2024, 2026, Olivier Ayache.  All rights reserved.</a>
+<span class="sourceLineNo">003</span><a id="line.3"> *</a>
+<span class="sourceLineNo">004</span><a id="line.4"> * This file is part of AVPKit.</a>
+<span class="sourceLineNo">005</span><a id="line.5"> *</a>
+<span class="sourceLineNo">006</span><a id="line.6"> * AVPKit is free software: you can redistribute it and/or modify</a>
+<span class="sourceLineNo">007</span><a id="line.7"> * it under the terms of the GNU Lesser General Public License as published by</a>
+<span class="sourceLineNo">008</span><a id="line.8"> * the Free Software Foundation, either version 3 of the License, or</a>
+<span class="sourceLineNo">009</span><a id="line.9"> * (at your option) any later version.</a>
+<span class="sourceLineNo">010</span><a id="line.10"> *</a>
+<span class="sourceLineNo">011</span><a id="line.11"> * AVPKit is distributed in the hope that it will be useful,</a>
+<span class="sourceLineNo">012</span><a id="line.12"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</a>
+<span class="sourceLineNo">013</span><a id="line.13"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</a>
+<span class="sourceLineNo">014</span><a id="line.14"> * GNU Lesser General Public License for more details.</a>
+<span class="sourceLineNo">015</span><a id="line.15"> *</a>
+<span class="sourceLineNo">016</span><a id="line.16"> * You should have received a copy of the GNU Lesser General Public License</a>
+<span class="sourceLineNo">017</span><a id="line.17"> * along with AVPKit.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</a>
+<span class="sourceLineNo">018</span><a id="line.18"> *******************************************************************************/</a>
+<span class="sourceLineNo">019</span><a id="line.19"></a>
+<span class="sourceLineNo">020</span><a id="line.20">package com.avpkit.core;</a>
+<span class="sourceLineNo">021</span><a id="line.21"></a>
+<span class="sourceLineNo">022</span><a id="line.22">import java.util.List;</a>
+<span class="sourceLineNo">023</span><a id="line.23"></a>
+<span class="sourceLineNo">024</span><a id="line.24">import org.apache.commons.cli.*;</a>
+<span class="sourceLineNo">025</span><a id="line.25">import org.slf4j.Logger;</a>
+<span class="sourceLineNo">026</span><a id="line.26">import org.slf4j.LoggerFactory;</a>
+<span class="sourceLineNo">027</span><a id="line.27"></a>
+<span class="sourceLineNo">028</span><a id="line.28">import com.avpkit.core.Global;</a>
+<span class="sourceLineNo">029</span><a id="line.29">import com.avpkit.core.IAudioResampler;</a>
+<span class="sourceLineNo">030</span><a id="line.30">import com.avpkit.core.IAudioSamples;</a>
+<span class="sourceLineNo">031</span><a id="line.31">import com.avpkit.core.IAudioSamples.Format;</a>
+<span class="sourceLineNo">032</span><a id="line.32">import com.avpkit.core.ICodec;</a>
+<span class="sourceLineNo">033</span><a id="line.33">import com.avpkit.core.IContainer;</a>
+<span class="sourceLineNo">034</span><a id="line.34">import com.avpkit.core.IContainerFormat;</a>
+<span class="sourceLineNo">035</span><a id="line.35">import com.avpkit.core.IVideoPicture;</a>
+<span class="sourceLineNo">036</span><a id="line.36">import com.avpkit.core.IPacket;</a>
+<span class="sourceLineNo">037</span><a id="line.37">import com.avpkit.core.IRational;</a>
+<span class="sourceLineNo">038</span><a id="line.38">import com.avpkit.core.IStream;</a>
+<span class="sourceLineNo">039</span><a id="line.39">import com.avpkit.core.IStreamCoder;</a>
+<span class="sourceLineNo">040</span><a id="line.40">import com.avpkit.core.IVideoResampler;</a>
+<span class="sourceLineNo">041</span><a id="line.41"></a>
+<span class="sourceLineNo">042</span><a id="line.42">import com.avpkit.core.io.URLProtocolManager;</a>
+<span class="sourceLineNo">043</span><a id="line.43"></a>
+<span class="sourceLineNo">044</span><a id="line.44">/**</a>
+<span class="sourceLineNo">045</span><a id="line.45"> * An example class that shows how to use the AVPKit library to open, decode,</a>
+<span class="sourceLineNo">046</span><a id="line.46"> * re-sample, encode and write media files.</a>
+<span class="sourceLineNo">047</span><a id="line.47"> * </a>
+<span class="sourceLineNo">048</span><a id="line.48"> * &lt;p&gt;</a>
+<span class="sourceLineNo">049</span><a id="line.49"> * </a>
+<span class="sourceLineNo">050</span><a id="line.50"> * This class is called by the {@link AVPKit} class to do all the heavy</a>
+<span class="sourceLineNo">051</span><a id="line.51"> * lifting. It is meant as a Demonstration class and implements a small subset</a>
+<span class="sourceLineNo">052</span><a id="line.52"> * of the functionality that the (much more full-featured) &lt;code&gt;ffmpeg&lt;/code&gt;</a>
+<span class="sourceLineNo">053</span><a id="line.53"> * command line tool implements. It is really meant to show people how the</a>
+<span class="sourceLineNo">054</span><a id="line.54"> * AVPKit library is used from java.</a>
+<span class="sourceLineNo">055</span><a id="line.55"> * </a>
+<span class="sourceLineNo">056</span><a id="line.56"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">057</span><a id="line.57"> * &lt;p&gt;</a>
+<span class="sourceLineNo">058</span><a id="line.58"> * </a>
+<span class="sourceLineNo">059</span><a id="line.59"> * Read &lt;a href="{@docRoot}/src-html/com/avpkit/core/Converter.html"&gt;the</a>
+<span class="sourceLineNo">060</span><a id="line.60"> * Converter.java source&lt;/a&gt; for a good example of a class exercising this</a>
+<span class="sourceLineNo">061</span><a id="line.61"> * library.</a>
+<span class="sourceLineNo">062</span><a id="line.62"> * </a>
+<span class="sourceLineNo">063</span><a id="line.63"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">064</span><a id="line.64"> * &lt;p&gt;</a>
+<span class="sourceLineNo">065</span><a id="line.65"> * </a>
+<span class="sourceLineNo">066</span><a id="line.66"> * &lt;strong&gt;It is not our intent to replicate all features in the</a>
+<span class="sourceLineNo">067</span><a id="line.67"> * &lt;code&gt;ffmpeg&lt;/code&gt; command line tool in this class.&lt;/strong&gt;</a>
+<span class="sourceLineNo">068</span><a id="line.68"> * </a>
+<span class="sourceLineNo">069</span><a id="line.69"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">070</span><a id="line.70"> * &lt;p&gt;</a>
+<span class="sourceLineNo">071</span><a id="line.71"> * </a>
+<span class="sourceLineNo">072</span><a id="line.72"> * If you are just trying to convert pre-existing media files from one format to</a>
+<span class="sourceLineNo">073</span><a id="line.73"> * another with a batch-processing program we strongly recommend you use the</a>
+<span class="sourceLineNo">074</span><a id="line.74"> * &lt;code&gt;ffmpeg&lt;/code&gt; command-line tool to do it. Look, here's even the &lt;a</a>
+<span class="sourceLineNo">075</span><a id="line.75"> * href="http://ffmpeg.org/ffmpeg-doc.html"&gt;documentation&lt;/a&gt; for that program.</a>
+<span class="sourceLineNo">076</span><a id="line.76"> * </a>
+<span class="sourceLineNo">077</span><a id="line.77"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">078</span><a id="line.78"> * &lt;p&gt;</a>
+<span class="sourceLineNo">079</span><a id="line.79"> * </a>
+<span class="sourceLineNo">080</span><a id="line.80"> * If on the other hand you need to programatically decide when and how you do</a>
+<span class="sourceLineNo">081</span><a id="line.81"> * video processing, or process only parts of files, or do transcoding live</a>
+<span class="sourceLineNo">082</span><a id="line.82"> * within a Java server without calling out to another process, then by all</a>
+<span class="sourceLineNo">083</span><a id="line.83"> * means use AVPKit and use this class as an example of how to do conversion.</a>
+<span class="sourceLineNo">084</span><a id="line.84"> * But please recognize you will likely need to implement code specific to your</a>
+<span class="sourceLineNo">085</span><a id="line.85"> * application. &lt;strong&gt;This class is no substitute for actually understanding</a>
+<span class="sourceLineNo">086</span><a id="line.86"> * the how to use the AVPKit API within your specific use-case&lt;/strong&gt;</a>
+<span class="sourceLineNo">087</span><a id="line.87"> * </a>
+<span class="sourceLineNo">088</span><a id="line.88"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">089</span><a id="line.89"> * &lt;p&gt;</a>
+<span class="sourceLineNo">090</span><a id="line.90"> * </a>
+<span class="sourceLineNo">091</span><a id="line.91"> * And if you haven't gotten the impression, please stop asking us to support</a>
+<span class="sourceLineNo">092</span><a id="line.92"> * &lt;code&gt;ffmpeg&lt;/code&gt; options like "-re" in this class. This class is only</a>
+<span class="sourceLineNo">093</span><a id="line.93"> * meant as a teaching-aide for the underlying AVPKit API.</a>
+<span class="sourceLineNo">094</span><a id="line.94"> * </a>
+<span class="sourceLineNo">095</span><a id="line.95"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">096</span><a id="line.96"> * &lt;p&gt;</a>
+<span class="sourceLineNo">097</span><a id="line.97"> * </a>
+<span class="sourceLineNo">098</span><a id="line.98"> * Instead implement your own Java class based off of this that does real-time</a>
+<span class="sourceLineNo">099</span><a id="line.99"> * playback yourself. Really. Please. We'd appreciate it very much.</a>
+<span class="sourceLineNo">100</span><a id="line.100"> * </a>
+<span class="sourceLineNo">101</span><a id="line.101"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">102</span><a id="line.102"> * &lt;p&gt;</a>
+<span class="sourceLineNo">103</span><a id="line.103"> * Now, all that said, here's how to create a main class that uses this</a>
+<span class="sourceLineNo">104</span><a id="line.104"> * Converter class:</a>
+<span class="sourceLineNo">105</span><a id="line.105"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">106</span><a id="line.106"> * </a>
+<span class="sourceLineNo">107</span><a id="line.107"> * &lt;pre&gt;</a>
+<span class="sourceLineNo">108</span><a id="line.108"> * public static void main(String[] args)</a>
+<span class="sourceLineNo">109</span><a id="line.109"> * {</a>
+<span class="sourceLineNo">110</span><a id="line.110"> *   Converter converter = new Converter();</a>
+<span class="sourceLineNo">111</span><a id="line.111"> *   try</a>
+<span class="sourceLineNo">112</span><a id="line.112"> *   {</a>
+<span class="sourceLineNo">113</span><a id="line.113"> *     // first define options</a>
+<span class="sourceLineNo">114</span><a id="line.114"> *     Options options = converter.defineOptions();</a>
+<span class="sourceLineNo">115</span><a id="line.115"> *     // And then parse them.</a>
+<span class="sourceLineNo">116</span><a id="line.116"> *     CommandLine cmdLine = converter.parseOptions(options, args);</a>
+<span class="sourceLineNo">117</span><a id="line.117"> *     // Finally, run the converter.</a>
+<span class="sourceLineNo">118</span><a id="line.118"> *     converter.run(cmdLine);</a>
+<span class="sourceLineNo">119</span><a id="line.119"> *   }</a>
+<span class="sourceLineNo">120</span><a id="line.120"> *   catch (Exception exception)</a>
+<span class="sourceLineNo">121</span><a id="line.121"> *   {</a>
+<span class="sourceLineNo">122</span><a id="line.122"> *     System.err.printf(&amp;quot;Error: %s\n&amp;quot;, exception.getMessage());</a>
+<span class="sourceLineNo">123</span><a id="line.123"> *   }</a>
+<span class="sourceLineNo">124</span><a id="line.124"> * }</a>
+<span class="sourceLineNo">125</span><a id="line.125"> * &lt;/pre&gt;</a>
+<span class="sourceLineNo">126</span><a id="line.126"> * </a>
+<span class="sourceLineNo">127</span><a id="line.127"> * &lt;p&gt;</a>
+<span class="sourceLineNo">128</span><a id="line.128"> * </a>
+<span class="sourceLineNo">129</span><a id="line.129"> * Pass &amp;quot;--help&amp;quot to your main class as the argument to see the list of</a>
+<span class="sourceLineNo">130</span><a id="line.130"> * accepted options.</a>
+<span class="sourceLineNo">131</span><a id="line.131"> * </a>
+<span class="sourceLineNo">132</span><a id="line.132"> * &lt;/p&gt;</a>
+<span class="sourceLineNo">133</span><a id="line.133"> * </a>
+<span class="sourceLineNo">134</span><a id="line.134"> * @author aclarke</a>
+<span class="sourceLineNo">135</span><a id="line.135"> * </a>
+<span class="sourceLineNo">136</span><a id="line.136"> */</a>
+<span class="sourceLineNo">137</span><a id="line.137">public class Converter</a>
+<span class="sourceLineNo">138</span><a id="line.138">{</a>
+<span class="sourceLineNo">139</span><a id="line.139">  static</a>
+<span class="sourceLineNo">140</span><a id="line.140">  {</a>
+<span class="sourceLineNo">141</span><a id="line.141">    // this forces the FFMPEG io library to be loaded which means we can bypass</a>
+<span class="sourceLineNo">142</span><a id="line.142">    // FFMPEG's file io if needed</a>
+<span class="sourceLineNo">143</span><a id="line.143">    URLProtocolManager.getManager();</a>
+<span class="sourceLineNo">144</span><a id="line.144">  }</a>
+<span class="sourceLineNo">145</span><a id="line.145"></a>
+<span class="sourceLineNo">146</span><a id="line.146">  /**</a>
+<span class="sourceLineNo">147</span><a id="line.147">   * Create a new Converter object.</a>
+<span class="sourceLineNo">148</span><a id="line.148">   */</a>
+<span class="sourceLineNo">149</span><a id="line.149">  public Converter()</a>
+<span class="sourceLineNo">150</span><a id="line.150">  {</a>
+<span class="sourceLineNo">151</span><a id="line.151">      </a>
+<span class="sourceLineNo">152</span><a id="line.152">  }</a>
+<span class="sourceLineNo">153</span><a id="line.153"></a>
+<span class="sourceLineNo">154</span><a id="line.154">  private final Logger log = LoggerFactory.getLogger(this.getClass());</a>
+<span class="sourceLineNo">155</span><a id="line.155"></a>
+<span class="sourceLineNo">156</span><a id="line.156">  /**</a>
+<span class="sourceLineNo">157</span><a id="line.157">   * A container we'll use to read data from.</a>
+<span class="sourceLineNo">158</span><a id="line.158">   */</a>
+<span class="sourceLineNo">159</span><a id="line.159">  private IContainer mIContainer = null;</a>
+<span class="sourceLineNo">160</span><a id="line.160">  /**</a>
+<span class="sourceLineNo">161</span><a id="line.161">   * A container we'll use to write data from.</a>
+<span class="sourceLineNo">162</span><a id="line.162">   */</a>
+<span class="sourceLineNo">163</span><a id="line.163">  private IContainer mOContainer = null;</a>
+<span class="sourceLineNo">164</span><a id="line.164"></a>
+<span class="sourceLineNo">165</span><a id="line.165">  /**</a>
+<span class="sourceLineNo">166</span><a id="line.166">   * A set of {@link IStream} values for each stream in the input</a>
+<span class="sourceLineNo">167</span><a id="line.167">   * {@link IContainer}.</a>
+<span class="sourceLineNo">168</span><a id="line.168">   */</a>
+<span class="sourceLineNo">169</span><a id="line.169">  private IStream[] mIStreams = null;</a>
+<span class="sourceLineNo">170</span><a id="line.170">  /**</a>
+<span class="sourceLineNo">171</span><a id="line.171">   * A set of {@link IStreamCoder} objects we'll use to decode audio and video.</a>
+<span class="sourceLineNo">172</span><a id="line.172">   */</a>
+<span class="sourceLineNo">173</span><a id="line.173">  private IStreamCoder[] mICoders = null;</a>
+<span class="sourceLineNo">174</span><a id="line.174"></a>
+<span class="sourceLineNo">175</span><a id="line.175">  /**</a>
+<span class="sourceLineNo">176</span><a id="line.176">   * A set of {@link IStream} objects for each stream we'll output to the output</a>
+<span class="sourceLineNo">177</span><a id="line.177">   * {@link IContainer}.</a>
+<span class="sourceLineNo">178</span><a id="line.178">   */</a>
+<span class="sourceLineNo">179</span><a id="line.179">  private IStream[] mOStreams = null;</a>
+<span class="sourceLineNo">180</span><a id="line.180">  /**</a>
+<span class="sourceLineNo">181</span><a id="line.181">   * A set of {@link IStreamCoder} objects we'll use to encode audio and video.</a>
+<span class="sourceLineNo">182</span><a id="line.182">   */</a>
+<span class="sourceLineNo">183</span><a id="line.183">  private IStreamCoder[] mOCoders = null;</a>
+<span class="sourceLineNo">184</span><a id="line.184"></a>
+<span class="sourceLineNo">185</span><a id="line.185">  /**</a>
+<span class="sourceLineNo">186</span><a id="line.186">   * A set of {@link IVideoPicture} objects that we'll use to hold decoded video</a>
+<span class="sourceLineNo">187</span><a id="line.187">   * data.</a>
+<span class="sourceLineNo">188</span><a id="line.188">   */</a>
+<span class="sourceLineNo">189</span><a id="line.189">  private IVideoPicture[] mIVideoPictures = null;</a>
+<span class="sourceLineNo">190</span><a id="line.190">  /**</a>
+<span class="sourceLineNo">191</span><a id="line.191">   * A set of {@link IVideoPicture} objects we'll use to hold</a>
+<span class="sourceLineNo">192</span><a id="line.192">   * potentially-resampled video data before we encode it.</a>
+<span class="sourceLineNo">193</span><a id="line.193">   */</a>
+<span class="sourceLineNo">194</span><a id="line.194">  private IVideoPicture[] mOVideoPictures = null;</a>
+<span class="sourceLineNo">195</span><a id="line.195"></a>
+<span class="sourceLineNo">196</span><a id="line.196">  /**</a>
+<span class="sourceLineNo">197</span><a id="line.197">   * A set of {@link IAudioSamples} objects we'll use to hold decoded audio</a>
+<span class="sourceLineNo">198</span><a id="line.198">   * data.</a>
+<span class="sourceLineNo">199</span><a id="line.199">   */</a>
+<span class="sourceLineNo">200</span><a id="line.200">  private IAudioSamples[] mISamples = null;</a>
+<span class="sourceLineNo">201</span><a id="line.201">  /**</a>
+<span class="sourceLineNo">202</span><a id="line.202">   * A set of {@link IAudioSamples} objects we'll use to hold</a>
+<span class="sourceLineNo">203</span><a id="line.203">   * potentially-resampled audio data before we encode it.</a>
+<span class="sourceLineNo">204</span><a id="line.204">   */</a>
+<span class="sourceLineNo">205</span><a id="line.205">  private IAudioSamples[] mOSamples = null;</a>
+<span class="sourceLineNo">206</span><a id="line.206"></a>
+<span class="sourceLineNo">207</span><a id="line.207">  /**</a>
+<span class="sourceLineNo">208</span><a id="line.208">   * A set of {@link IAudioResampler} objects (one for each stream) we'll use to</a>
+<span class="sourceLineNo">209</span><a id="line.209">   * resample audio if needed.</a>
+<span class="sourceLineNo">210</span><a id="line.210">   */</a>
+<span class="sourceLineNo">211</span><a id="line.211">  private IAudioResampler[] mASamplers = null;</a>
+<span class="sourceLineNo">212</span><a id="line.212">  /**</a>
+<span class="sourceLineNo">213</span><a id="line.213">   * A set of {@link IVideoResampler} objects (one for each stream) we'll use to</a>
+<span class="sourceLineNo">214</span><a id="line.214">   * resample video if needed.</a>
+<span class="sourceLineNo">215</span><a id="line.215">   */</a>
+<span class="sourceLineNo">216</span><a id="line.216">  private IVideoResampler[] mVSamplers = null;</a>
+<span class="sourceLineNo">217</span><a id="line.217"></a>
+<span class="sourceLineNo">218</span><a id="line.218">  /**</a>
+<span class="sourceLineNo">219</span><a id="line.219">   * Should we convert audio</a>
+<span class="sourceLineNo">220</span><a id="line.220">   */</a>
+<span class="sourceLineNo">221</span><a id="line.221">  private boolean mHasAudio = true;</a>
+<span class="sourceLineNo">222</span><a id="line.222">  /**</a>
+<span class="sourceLineNo">223</span><a id="line.223">   * Should we convert video</a>
+<span class="sourceLineNo">224</span><a id="line.224">   */</a>
+<span class="sourceLineNo">225</span><a id="line.225">  private boolean mHasVideo = true;</a>
+<span class="sourceLineNo">226</span><a id="line.226"></a>
+<span class="sourceLineNo">227</span><a id="line.227">  /**</a>
+<span class="sourceLineNo">228</span><a id="line.228">   * Should we force an interleaving of the output</a>
+<span class="sourceLineNo">229</span><a id="line.229">   */</a>
+<span class="sourceLineNo">230</span><a id="line.230">  private final boolean mForceInterleave = true;</a>
+<span class="sourceLineNo">231</span><a id="line.231"></a>
+<span class="sourceLineNo">232</span><a id="line.232">  /**</a>
+<span class="sourceLineNo">233</span><a id="line.233">   * Should we attempt to encode 'in real time'</a>
+<span class="sourceLineNo">234</span><a id="line.234">   */</a>
+<span class="sourceLineNo">235</span><a id="line.235">  private boolean mRealTimeEncoder;</a>
+<span class="sourceLineNo">236</span><a id="line.236"></a>
+<span class="sourceLineNo">237</span><a id="line.237">  private Long mStartClockTime;</a>
+<span class="sourceLineNo">238</span><a id="line.238">  private Long mStartStreamTime;</a>
+<span class="sourceLineNo">239</span><a id="line.239"></a>
+<span class="sourceLineNo">240</span><a id="line.240">  /**</a>
+<span class="sourceLineNo">241</span><a id="line.241">   * Define all the command line options this program can take.</a>
+<span class="sourceLineNo">242</span><a id="line.242">   * </a>
+<span class="sourceLineNo">243</span><a id="line.243">   * @return The set of accepted options.</a>
+<span class="sourceLineNo">244</span><a id="line.244">   */</a>
+<span class="sourceLineNo">245</span><a id="line.245">  public Options defineOptions()</a>
+<span class="sourceLineNo">246</span><a id="line.246">  {</a>
+<span class="sourceLineNo">247</span><a id="line.247">    Options options = new Options();</a>
+<span class="sourceLineNo">248</span><a id="line.248"></a>
+<span class="sourceLineNo">249</span><a id="line.249">    Option help = new Option("help", "print this message");</a>
+<span class="sourceLineNo">250</span><a id="line.250"></a>
+<span class="sourceLineNo">251</span><a id="line.251">    /*</a>
+<span class="sourceLineNo">252</span><a id="line.252">     * Output container options.</a>
+<span class="sourceLineNo">253</span><a id="line.253">     */</a>
+<span class="sourceLineNo">254</span><a id="line.254">    OptionBuilder.withArgName("container-format");</a>
+<span class="sourceLineNo">255</span><a id="line.255">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">256</span><a id="line.256">    OptionBuilder</a>
+<span class="sourceLineNo">257</span><a id="line.257">        .withDescription("output container format to use (e.g. \"mov\")");</a>
+<span class="sourceLineNo">258</span><a id="line.258">    Option containerFormat = OptionBuilder.create("containerformat");</a>
+<span class="sourceLineNo">259</span><a id="line.259"></a>
+<span class="sourceLineNo">260</span><a id="line.260">    OptionBuilder.withArgName("icontainer-format");</a>
+<span class="sourceLineNo">261</span><a id="line.261">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">262</span><a id="line.262">    OptionBuilder</a>
+<span class="sourceLineNo">263</span><a id="line.263">        .withDescription("input container format to use (e.g. \"mov\")");</a>
+<span class="sourceLineNo">264</span><a id="line.264">    Option icontainerFormat = OptionBuilder.create("icontainerformat");    </a>
+<span class="sourceLineNo">265</span><a id="line.265">    </a>
+<span class="sourceLineNo">266</span><a id="line.266">    OptionBuilder.withArgName("file");</a>
+<span class="sourceLineNo">267</span><a id="line.267">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">268</span><a id="line.268">    OptionBuilder</a>
+<span class="sourceLineNo">269</span><a id="line.269">        .withDescription("container option presets file");</a>
+<span class="sourceLineNo">270</span><a id="line.270">    Option cpreset = OptionBuilder.create("cpreset");</a>
+<span class="sourceLineNo">271</span><a id="line.271"></a>
+<span class="sourceLineNo">272</span><a id="line.272">    /*</a>
+<span class="sourceLineNo">273</span><a id="line.273">     * Audio options</a>
+<span class="sourceLineNo">274</span><a id="line.274">     */</a>
+<span class="sourceLineNo">275</span><a id="line.275">    OptionBuilder.hasArg(false);</a>
+<span class="sourceLineNo">276</span><a id="line.276">    OptionBuilder.withDescription("no audio");</a>
+<span class="sourceLineNo">277</span><a id="line.277">    Option ano = OptionBuilder.create("ano");</a>
+<span class="sourceLineNo">278</span><a id="line.278"></a>
+<span class="sourceLineNo">279</span><a id="line.279">    OptionBuilder.withArgName("file");</a>
+<span class="sourceLineNo">280</span><a id="line.280">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">281</span><a id="line.281">    OptionBuilder</a>
+<span class="sourceLineNo">282</span><a id="line.282">        .withDescription("audio option presets file");</a>
+<span class="sourceLineNo">283</span><a id="line.283">    Option apreset = OptionBuilder.create("apreset");</a>
+<span class="sourceLineNo">284</span><a id="line.284"></a>
+<span class="sourceLineNo">285</span><a id="line.285">    OptionBuilder.withArgName("codec");</a>
+<span class="sourceLineNo">286</span><a id="line.286">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">287</span><a id="line.287">    OptionBuilder</a>
+<span class="sourceLineNo">288</span><a id="line.288">        .withDescription("audio codec to encode with (e.g. \"libmp3lame\")");</a>
+<span class="sourceLineNo">289</span><a id="line.289">    Option acodec = OptionBuilder.create("acodec");</a>
+<span class="sourceLineNo">290</span><a id="line.290"></a>
+<span class="sourceLineNo">291</span><a id="line.291">    OptionBuilder.withArgName("icodec");</a>
+<span class="sourceLineNo">292</span><a id="line.292">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">293</span><a id="line.293">    OptionBuilder</a>
+<span class="sourceLineNo">294</span><a id="line.294">        .withDescription("input audio codec  (e.g. \"libmp3lame\")");</a>
+<span class="sourceLineNo">295</span><a id="line.295">    Option iacodec = OptionBuilder.create("iacodec");    </a>
+<span class="sourceLineNo">296</span><a id="line.296">    </a>
+<span class="sourceLineNo">297</span><a id="line.297">    OptionBuilder.withArgName("sample-rate");</a>
+<span class="sourceLineNo">298</span><a id="line.298">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">299</span><a id="line.299">    OptionBuilder</a>
+<span class="sourceLineNo">300</span><a id="line.300">        .withDescription("audio sample rate to (up/down) encode with (in hz) (e.g. \"22050\")");</a>
+<span class="sourceLineNo">301</span><a id="line.301">    Option asamplerate = OptionBuilder.create("asamplerate");</a>
+<span class="sourceLineNo">302</span><a id="line.302"></a>
+<span class="sourceLineNo">303</span><a id="line.303">    OptionBuilder.withArgName("isample-rate");</a>
+<span class="sourceLineNo">304</span><a id="line.304">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">305</span><a id="line.305">    OptionBuilder</a>
+<span class="sourceLineNo">306</span><a id="line.306">        .withDescription("input audio sample rate to (up/down) encode with (in hz) (e.g. \"22050\")");</a>
+<span class="sourceLineNo">307</span><a id="line.307">    Option iasamplerate = OptionBuilder.create("iasamplerate");    </a>
+<span class="sourceLineNo">308</span><a id="line.308">    </a>
+<span class="sourceLineNo">309</span><a id="line.309">    OptionBuilder.withArgName("channels");</a>
+<span class="sourceLineNo">310</span><a id="line.310">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">311</span><a id="line.311">    OptionBuilder</a>
+<span class="sourceLineNo">312</span><a id="line.312">        .withDescription("number of audio channels (1 or 2) to encode with (e.g. \"2\")");</a>
+<span class="sourceLineNo">313</span><a id="line.313">    Option achannels = OptionBuilder.create("achannels");</a>
+<span class="sourceLineNo">314</span><a id="line.314"></a>
+<span class="sourceLineNo">315</span><a id="line.315">    OptionBuilder.withArgName("ichannels");</a>
+<span class="sourceLineNo">316</span><a id="line.316">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">317</span><a id="line.317">    OptionBuilder</a>
+<span class="sourceLineNo">318</span><a id="line.318">        .withDescription("input number of audio channels (1 or 2)");</a>
+<span class="sourceLineNo">319</span><a id="line.319">    Option iachannels = OptionBuilder.create("iachannels");    </a>
+<span class="sourceLineNo">320</span><a id="line.320">    </a>
+<span class="sourceLineNo">321</span><a id="line.321">    OptionBuilder.withArgName("abit-rate");</a>
+<span class="sourceLineNo">322</span><a id="line.322">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">323</span><a id="line.323">    OptionBuilder</a>
+<span class="sourceLineNo">324</span><a id="line.324">        .withDescription("bit rate to encode audio with (in bps) (e.g. \"60000\")");</a>
+<span class="sourceLineNo">325</span><a id="line.325">    Option abitrate = OptionBuilder.create("abitrate");</a>
+<span class="sourceLineNo">326</span><a id="line.326"></a>
+<span class="sourceLineNo">327</span><a id="line.327">    OptionBuilder.withArgName("stream");</a>
+<span class="sourceLineNo">328</span><a id="line.328">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">329</span><a id="line.329">    OptionBuilder</a>
+<span class="sourceLineNo">330</span><a id="line.330">        .withDescription("if multiple audio streams of a given type, this is the stream you want to output");</a>
+<span class="sourceLineNo">331</span><a id="line.331">    Option astream = OptionBuilder.create("astream");</a>
+<span class="sourceLineNo">332</span><a id="line.332"></a>
+<span class="sourceLineNo">333</span><a id="line.333">    OptionBuilder.withArgName("quality");</a>
+<span class="sourceLineNo">334</span><a id="line.334">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">335</span><a id="line.335">    OptionBuilder</a>
+<span class="sourceLineNo">336</span><a id="line.336">        .withDescription("quality setting to use for audio.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.");</a>
+<span class="sourceLineNo">337</span><a id="line.337">    Option aquality = OptionBuilder.create("aquality");</a>
+<span class="sourceLineNo">338</span><a id="line.338"></a>
+<span class="sourceLineNo">339</span><a id="line.339">    /*</a>
+<span class="sourceLineNo">340</span><a id="line.340">     * Video options</a>
+<span class="sourceLineNo">341</span><a id="line.341">     */</a>
+<span class="sourceLineNo">342</span><a id="line.342">    OptionBuilder.hasArg(false);</a>
+<span class="sourceLineNo">343</span><a id="line.343">    OptionBuilder.withDescription("no video");</a>
+<span class="sourceLineNo">344</span><a id="line.344">    Option vno = OptionBuilder.create("vno");</a>
+<span class="sourceLineNo">345</span><a id="line.345"></a>
+<span class="sourceLineNo">346</span><a id="line.346">    OptionBuilder.withArgName("file");</a>
+<span class="sourceLineNo">347</span><a id="line.347">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">348</span><a id="line.348">    OptionBuilder</a>
+<span class="sourceLineNo">349</span><a id="line.349">        .withDescription("video option presets file");</a>
+<span class="sourceLineNo">350</span><a id="line.350">    Option vpreset = OptionBuilder.create("vpreset");</a>
+<span class="sourceLineNo">351</span><a id="line.351"></a>
+<span class="sourceLineNo">352</span><a id="line.352">    OptionBuilder.withArgName("codec");</a>
+<span class="sourceLineNo">353</span><a id="line.353">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">354</span><a id="line.354">    OptionBuilder</a>
+<span class="sourceLineNo">355</span><a id="line.355">        .withDescription("video codec to encode with (e.g. \"mpeg4\")");</a>
+<span class="sourceLineNo">356</span><a id="line.356">    Option vcodec = OptionBuilder.create("vcodec");</a>
+<span class="sourceLineNo">357</span><a id="line.357"></a>
+<span class="sourceLineNo">358</span><a id="line.358">    OptionBuilder.withArgName("factor");</a>
+<span class="sourceLineNo">359</span><a id="line.359">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">360</span><a id="line.360">    OptionBuilder</a>
+<span class="sourceLineNo">361</span><a id="line.361">        .withDescription("scaling factor to scale output video by (e.g. \"0.75\")");</a>
+<span class="sourceLineNo">362</span><a id="line.362">    Option vscaleFactor = OptionBuilder.create("vscalefactor");</a>
+<span class="sourceLineNo">363</span><a id="line.363"></a>
+<span class="sourceLineNo">364</span><a id="line.364">    OptionBuilder.withArgName("vbitrate");</a>
+<span class="sourceLineNo">365</span><a id="line.365">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">366</span><a id="line.366">    OptionBuilder</a>
+<span class="sourceLineNo">367</span><a id="line.367">        .withDescription("bit rate to encode video with (in bps) (e.g. \"60000\")");</a>
+<span class="sourceLineNo">368</span><a id="line.368">    Option vbitrate = OptionBuilder.create("vbitrate");</a>
+<span class="sourceLineNo">369</span><a id="line.369"></a>
+<span class="sourceLineNo">370</span><a id="line.370">    OptionBuilder.withArgName("vbitratetolerance");</a>
+<span class="sourceLineNo">371</span><a id="line.371">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">372</span><a id="line.372">    OptionBuilder</a>
+<span class="sourceLineNo">373</span><a id="line.373">        .withDescription("bit rate tolerance the bitstream is allowed to diverge from the reference (in bits) (e.g. \"1200000\")");</a>
+<span class="sourceLineNo">374</span><a id="line.374">    Option vbitratetolerance = OptionBuilder.create("vbitratetolerance");</a>
+<span class="sourceLineNo">375</span><a id="line.375"></a>
+<span class="sourceLineNo">376</span><a id="line.376">    OptionBuilder.withArgName("stream");</a>
+<span class="sourceLineNo">377</span><a id="line.377">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">378</span><a id="line.378">    OptionBuilder</a>
+<span class="sourceLineNo">379</span><a id="line.379">        .withDescription("if multiple video streams of a given type, this is the stream you want to output");</a>
+<span class="sourceLineNo">380</span><a id="line.380">    Option vstream = OptionBuilder.create("vstream");</a>
+<span class="sourceLineNo">381</span><a id="line.381"></a>
+<span class="sourceLineNo">382</span><a id="line.382">    OptionBuilder.withArgName("quality");</a>
+<span class="sourceLineNo">383</span><a id="line.383">    OptionBuilder.hasArg(true);</a>
+<span class="sourceLineNo">384</span><a id="line.384">    OptionBuilder</a>
+<span class="sourceLineNo">385</span><a id="line.385">        .withDescription("quality setting to use for video.  0 means same as source; higher numbers are (perversely) lower quality.  Defaults to 0.  If set, then bitrate flags are ignored.");</a>
+<span class="sourceLineNo">386</span><a id="line.386">    Option vquality = OptionBuilder.create("vquality");</a>
+<span class="sourceLineNo">387</span><a id="line.387">    </a>
+<span class="sourceLineNo">388</span><a id="line.388">    OptionBuilder.withArgName("realtime");</a>
+<span class="sourceLineNo">389</span><a id="line.389">    OptionBuilder.hasArg(false);</a>
+<span class="sourceLineNo">390</span><a id="line.390">    OptionBuilder.withDescription("attempt to encode frames at the realtime rate -- i.e. it encodes when the picture should play");</a>
+<span class="sourceLineNo">391</span><a id="line.391">    Option realtime = OptionBuilder.create("realtime");</a>
+<span class="sourceLineNo">392</span><a id="line.392"></a>
+<span class="sourceLineNo">393</span><a id="line.393">    options.addOption(help);</a>
+<span class="sourceLineNo">394</span><a id="line.394">    options.addOption(containerFormat);</a>
+<span class="sourceLineNo">395</span><a id="line.395">    options.addOption(cpreset);</a>
+<span class="sourceLineNo">396</span><a id="line.396">    options.addOption(ano);</a>
+<span class="sourceLineNo">397</span><a id="line.397">    options.addOption(apreset);</a>
+<span class="sourceLineNo">398</span><a id="line.398">    options.addOption(acodec);</a>
+<span class="sourceLineNo">399</span><a id="line.399">    options.addOption(asamplerate);</a>
+<span class="sourceLineNo">400</span><a id="line.400">    options.addOption(achannels);</a>
+<span class="sourceLineNo">401</span><a id="line.401">    options.addOption(abitrate);</a>
+<span class="sourceLineNo">402</span><a id="line.402">    options.addOption(astream);</a>
+<span class="sourceLineNo">403</span><a id="line.403">    options.addOption(aquality);</a>
+<span class="sourceLineNo">404</span><a id="line.404">    options.addOption(vno);</a>
+<span class="sourceLineNo">405</span><a id="line.405">    options.addOption(vpreset);</a>
+<span class="sourceLineNo">406</span><a id="line.406">    options.addOption(vcodec);</a>
+<span class="sourceLineNo">407</span><a id="line.407">    options.addOption(vscaleFactor);</a>
+<span class="sourceLineNo">408</span><a id="line.408">    options.addOption(vbitrate);</a>
+<span class="sourceLineNo">409</span><a id="line.409">    options.addOption(vbitratetolerance);</a>
+<span class="sourceLineNo">410</span><a id="line.410">    options.addOption(vstream);</a>
+<span class="sourceLineNo">411</span><a id="line.411">    options.addOption(vquality);</a>
+<span class="sourceLineNo">412</span><a id="line.412"></a>
+<span class="sourceLineNo">413</span><a id="line.413">    options.addOption(icontainerFormat);</a>
+<span class="sourceLineNo">414</span><a id="line.414">    options.addOption(iacodec);</a>
+<span class="sourceLineNo">415</span><a id="line.415">    options.addOption(iachannels);</a>
+<span class="sourceLineNo">416</span><a id="line.416">    options.addOption(iasamplerate);</a>
+<span class="sourceLineNo">417</span><a id="line.417"></a>
+<span class="sourceLineNo">418</span><a id="line.418">    options.addOption(realtime);</a>
+<span class="sourceLineNo">419</span><a id="line.419">    </a>
+<span class="sourceLineNo">420</span><a id="line.420">    return options;</a>
+<span class="sourceLineNo">421</span><a id="line.421">  }</a>
+<span class="sourceLineNo">422</span><a id="line.422"></a>
+<span class="sourceLineNo">423</span><a id="line.423">  /**</a>
+<span class="sourceLineNo">424</span><a id="line.424">   * Given a set of arguments passed into this object, return back a parsed</a>
+<span class="sourceLineNo">425</span><a id="line.425">   * command line.</a>
+<span class="sourceLineNo">426</span><a id="line.426">   * </a>
+<span class="sourceLineNo">427</span><a id="line.427">   * @param opt</a>
+<span class="sourceLineNo">428</span><a id="line.428">   *          A set of options as defined by {@link #defineOptions()}.</a>
+<span class="sourceLineNo">429</span><a id="line.429">   * @param args</a>
+<span class="sourceLineNo">430</span><a id="line.430">   *          A set of command line arguments passed into this class.</a>
+<span class="sourceLineNo">431</span><a id="line.431">   * @return A parsed command line.</a>
+<span class="sourceLineNo">432</span><a id="line.432">   * @throws ParseException</a>
+<span class="sourceLineNo">433</span><a id="line.433">   *           If there is an error in the command line.</a>
+<span class="sourceLineNo">434</span><a id="line.434">   */</a>
+<span class="sourceLineNo">435</span><a id="line.435">  public CommandLine parseOptions(Options opt, String[] args)</a>
+<span class="sourceLineNo">436</span><a id="line.436">      throws ParseException</a>
+<span class="sourceLineNo">437</span><a id="line.437">  {</a>
+<span class="sourceLineNo">438</span><a id="line.438">    CommandLine cmdLine = null;</a>
+<span class="sourceLineNo">439</span><a id="line.439"></a>
+<span class="sourceLineNo">440</span><a id="line.440">    CommandLineParser parser = new GnuParser();</a>
+<span class="sourceLineNo">441</span><a id="line.441"></a>
+<span class="sourceLineNo">442</span><a id="line.442">    cmdLine = parser.parse(opt, args);</a>
+<span class="sourceLineNo">443</span><a id="line.443"></a>
+<span class="sourceLineNo">444</span><a id="line.444">    if (cmdLine.hasOption("help"))</a>
+<span class="sourceLineNo">445</span><a id="line.445">    {</a>
+<span class="sourceLineNo">446</span><a id="line.446">      HelpFormatter help = new HelpFormatter();</a>
+<span class="sourceLineNo">447</span><a id="line.447">      help.printHelp("AVPKit [options] input_url output_url", opt);</a>
+<span class="sourceLineNo">448</span><a id="line.448">      System.exit(1);</a>
+<span class="sourceLineNo">449</span><a id="line.449">    }</a>
+<span class="sourceLineNo">450</span><a id="line.450">    // Make sure we have only two left over args</a>
+<span class="sourceLineNo">451</span><a id="line.451">    if (cmdLine.getArgs().length != 2)</a>
+<span class="sourceLineNo">452</span><a id="line.452">      throw new ParseException("missing input or output url");</a>
+<span class="sourceLineNo">453</span><a id="line.453"></a>
+<span class="sourceLineNo">454</span><a id="line.454">    return cmdLine;</a>
+<span class="sourceLineNo">455</span><a id="line.455">  }</a>
+<span class="sourceLineNo">456</span><a id="line.456"></a>
+<span class="sourceLineNo">457</span><a id="line.457">  /**</a>
+<span class="sourceLineNo">458</span><a id="line.458">   * Get an integer value from a command line argument.</a>
+<span class="sourceLineNo">459</span><a id="line.459">   * </a>
+<span class="sourceLineNo">460</span><a id="line.460">   * @param cmdLine</a>
+<span class="sourceLineNo">461</span><a id="line.461">   *          A parsed command line (as returned from</a>
+<span class="sourceLineNo">462</span><a id="line.462">   *          {@link #parseOptions(Options, String[])}</a>
+<span class="sourceLineNo">463</span><a id="line.463">   * @param key</a>
+<span class="sourceLineNo">464</span><a id="line.464">   *          The key for an option you want.</a>
+<span class="sourceLineNo">465</span><a id="line.465">   * @param defaultVal</a>
+<span class="sourceLineNo">466</span><a id="line.466">   *          The default value you want set if the key is not present in</a>
+<span class="sourceLineNo">467</span><a id="line.467">   *          cmdLine.</a>
+<span class="sourceLineNo">468</span><a id="line.468">   * @return The value for the key in the cmdLine, or defaultVal if it's not</a>
+<span class="sourceLineNo">469</span><a id="line.469">   *         there.</a>
+<span class="sourceLineNo">470</span><a id="line.470">   */</a>
+<span class="sourceLineNo">471</span><a id="line.471">  private int getIntOptionValue(CommandLine cmdLine, String key, int defaultVal)</a>
+<span class="sourceLineNo">472</span><a id="line.472">  {</a>
+<span class="sourceLineNo">473</span><a id="line.473">    int retval = defaultVal;</a>
+<span class="sourceLineNo">474</span><a id="line.474">    String optValue = cmdLine.getOptionValue(key);</a>
+<span class="sourceLineNo">475</span><a id="line.475"></a>
+<span class="sourceLineNo">476</span><a id="line.476">    if (optValue != null)</a>
+<span class="sourceLineNo">477</span><a id="line.477">    {</a>
+<span class="sourceLineNo">478</span><a id="line.478">      try</a>
+<span class="sourceLineNo">479</span><a id="line.479">      {</a>
+<span class="sourceLineNo">480</span><a id="line.480">        retval = Integer.parseInt(optValue);</a>
+<span class="sourceLineNo">481</span><a id="line.481">      }</a>
+<span class="sourceLineNo">482</span><a id="line.482">      catch (Exception ex)</a>
+<span class="sourceLineNo">483</span><a id="line.483">      {</a>
+<span class="sourceLineNo">484</span><a id="line.484">        log</a>
+<span class="sourceLineNo">485</span><a id="line.485">            .warn(</a>
+<span class="sourceLineNo">486</span><a id="line.486">                "Option \"{}\" value \"{}\" cannot be converted to integer; using {} instead",</a>
+<span class="sourceLineNo">487</span><a id="line.487">                new Object[]</a>
+<span class="sourceLineNo">488</span><a id="line.488">                {</a>
+<span class="sourceLineNo">489</span><a id="line.489">                    key, optValue, defaultVal</a>
+<span class="sourceLineNo">490</span><a id="line.490">                });</a>
+<span class="sourceLineNo">491</span><a id="line.491">      }</a>
+<span class="sourceLineNo">492</span><a id="line.492">    }</a>
+<span class="sourceLineNo">493</span><a id="line.493">    return retval;</a>
+<span class="sourceLineNo">494</span><a id="line.494">  }</a>
+<span class="sourceLineNo">495</span><a id="line.495"></a>
+<span class="sourceLineNo">496</span><a id="line.496">  /**</a>
+<span class="sourceLineNo">497</span><a id="line.497">   * Get a double value from a command line argument.</a>
+<span class="sourceLineNo">498</span><a id="line.498">   * </a>
+<span class="sourceLineNo">499</span><a id="line.499">   * @param cmdLine</a>
+<span class="sourceLineNo">500</span><a id="line.500">   *          A parsed command line (as returned from</a>
+<span class="sourceLineNo">501</span><a id="line.501">   *          {@link #parseOptions(Options, String[])}</a>
+<span class="sourceLineNo">502</span><a id="line.502">   * @param key</a>
+<span class="sourceLineNo">503</span><a id="line.503">   *          The key for an option you want.</a>
+<span class="sourceLineNo">504</span><a id="line.504">   * @param defaultVal</a>
+<span class="sourceLineNo">505</span><a id="line.505">   *          The default value you want set if the key is not present in</a>
+<span class="sourceLineNo">506</span><a id="line.506">   *          cmdLine.</a>
+<span class="sourceLineNo">507</span><a id="line.507">   * @return The value for the key in the cmdLine, or defaultVal if it's not</a>
+<span class="sourceLineNo">508</span><a id="line.508">   *         there.</a>
+<span class="sourceLineNo">509</span><a id="line.509">   */</a>
+<span class="sourceLineNo">510</span><a id="line.510">  private double getDoubleOptionValue(CommandLine cmdLine, String key,</a>
+<span class="sourceLineNo">511</span><a id="line.511">      double defaultVal)</a>
+<span class="sourceLineNo">512</span><a id="line.512">  {</a>
+<span class="sourceLineNo">513</span><a id="line.513">    double retval = defaultVal;</a>
+<span class="sourceLineNo">514</span><a id="line.514">    String optValue = cmdLine.getOptionValue(key);</a>
+<span class="sourceLineNo">515</span><a id="line.515"></a>
+<span class="sourceLineNo">516</span><a id="line.516">    if (optValue != null)</a>
+<span class="sourceLineNo">517</span><a id="line.517">    {</a>
+<span class="sourceLineNo">518</span><a id="line.518">      try</a>
+<span class="sourceLineNo">519</span><a id="line.519">      {</a>
+<span class="sourceLineNo">520</span><a id="line.520">        retval = Double.parseDouble(optValue);</a>
+<span class="sourceLineNo">521</span><a id="line.521">      }</a>
+<span class="sourceLineNo">522</span><a id="line.522">      catch (Exception ex)</a>
+<span class="sourceLineNo">523</span><a id="line.523">      {</a>
+<span class="sourceLineNo">524</span><a id="line.524">        log</a>
+<span class="sourceLineNo">525</span><a id="line.525">            .warn(</a>
+<span class="sourceLineNo">526</span><a id="line.526">                "Option \"{}\" value \"{}\" cannot be converted to double; using {} instead",</a>
+<span class="sourceLineNo">527</span><a id="line.527">                new Object[]</a>
+<span class="sourceLineNo">528</span><a id="line.528">                {</a>
+<span class="sourceLineNo">529</span><a id="line.529">                    key, optValue, defaultVal</a>
+<span class="sourceLineNo">530</span><a id="line.530">                });</a>
+<span class="sourceLineNo">531</span><a id="line.531">      }</a>
+<span class="sourceLineNo">532</span><a id="line.532">    }</a>
+<span class="sourceLineNo">533</span><a id="line.533">    return retval;</a>
+<span class="sourceLineNo">534</span><a id="line.534">  }</a>
+<span class="sourceLineNo">535</span><a id="line.535"></a>
+<span class="sourceLineNo">536</span><a id="line.536">  /**</a>
+<span class="sourceLineNo">537</span><a id="line.537">   * Open an initialize all AVPKit objects needed to encode and decode a video</a>
+<span class="sourceLineNo">538</span><a id="line.538">   * file.</a>
+<span class="sourceLineNo">539</span><a id="line.539">   * </a>
+<span class="sourceLineNo">540</span><a id="line.540">   * @param cmdLine</a>
+<span class="sourceLineNo">541</span><a id="line.541">   *          A command line (as returned from</a>
+<span class="sourceLineNo">542</span><a id="line.542">   *          {@link #parseOptions(Options, String[])}) that specifies what</a>
+<span class="sourceLineNo">543</span><a id="line.543">   *          files we want to process and how to process them.</a>
+<span class="sourceLineNo">544</span><a id="line.544">   * @return Number of streams in the input file, or &lt;= 0 on error.</a>
+<span class="sourceLineNo">545</span><a id="line.545">   */</a>
+<span class="sourceLineNo">546</span><a id="line.546"></a>
+<span class="sourceLineNo">547</span><a id="line.547">  int setupStreams(CommandLine cmdLine)</a>
+<span class="sourceLineNo">548</span><a id="line.548">  {</a>
+<span class="sourceLineNo">549</span><a id="line.549">    String inputURL = cmdLine.getArgs()[0];</a>
+<span class="sourceLineNo">550</span><a id="line.550">    String outputURL = cmdLine.getArgs()[1];</a>
+<span class="sourceLineNo">551</span><a id="line.551"></a>
+<span class="sourceLineNo">552</span><a id="line.552">    mHasAudio = !cmdLine.hasOption("ano");</a>
+<span class="sourceLineNo">553</span><a id="line.553">    mHasVideo = !cmdLine.hasOption("vno");</a>
+<span class="sourceLineNo">554</span><a id="line.554"></a>
+<span class="sourceLineNo">555</span><a id="line.555">    mRealTimeEncoder = cmdLine.hasOption("realtime");</a>
+<span class="sourceLineNo">556</span><a id="line.556">    </a>
+<span class="sourceLineNo">557</span><a id="line.557">    String acodec = cmdLine.getOptionValue("acodec");</a>
+<span class="sourceLineNo">558</span><a id="line.558">    String vcodec = cmdLine.getOptionValue("vcodec");</a>
+<span class="sourceLineNo">559</span><a id="line.559">    String containerFormat = cmdLine.getOptionValue("containerformat");</a>
+<span class="sourceLineNo">560</span><a id="line.560">    int astream = getIntOptionValue(cmdLine, "astream", -1);</a>
+<span class="sourceLineNo">561</span><a id="line.561">    int aquality = getIntOptionValue(cmdLine, "aquality", 0);</a>
+<span class="sourceLineNo">562</span><a id="line.562"></a>
+<span class="sourceLineNo">563</span><a id="line.563">    int sampleRate = getIntOptionValue(cmdLine, "asamplerate", 0);</a>
+<span class="sourceLineNo">564</span><a id="line.564">    int channels = getIntOptionValue(cmdLine, "achannels", 0);</a>
+<span class="sourceLineNo">565</span><a id="line.565">    int abitrate = getIntOptionValue(cmdLine, "abitrate", 0);</a>
+<span class="sourceLineNo">566</span><a id="line.566">    int vbitrate = getIntOptionValue(cmdLine, "vbitrate", 0);</a>
+<span class="sourceLineNo">567</span><a id="line.567">    int vbitratetolerance = getIntOptionValue(cmdLine, "vbitratetolerance", 0);</a>
+<span class="sourceLineNo">568</span><a id="line.568">    int vquality = getIntOptionValue(cmdLine, "vquality", -1);</a>
+<span class="sourceLineNo">569</span><a id="line.569">    int vstream = getIntOptionValue(cmdLine, "vstream", -1);</a>
+<span class="sourceLineNo">570</span><a id="line.570">    double vscaleFactor = getDoubleOptionValue(cmdLine, "vscalefactor", 1.0);</a>
+<span class="sourceLineNo">571</span><a id="line.571"></a>
+<span class="sourceLineNo">572</span><a id="line.572">    String icontainerFormat = cmdLine.getOptionValue("icontainerformat");    </a>
+<span class="sourceLineNo">573</span><a id="line.573">    String iacodec = cmdLine.getOptionValue("iacodec");</a>
+<span class="sourceLineNo">574</span><a id="line.574">    int isampleRate = getIntOptionValue(cmdLine, "iasamplerate", 0);</a>
+<span class="sourceLineNo">575</span><a id="line.575">    int ichannels = getIntOptionValue(cmdLine, "iachannels", 0);</a>
+<span class="sourceLineNo">576</span><a id="line.576">    </a>
+<span class="sourceLineNo">577</span><a id="line.577">    // Should have everything now!</a>
+<span class="sourceLineNo">578</span><a id="line.578">    int retval = 0;</a>
+<span class="sourceLineNo">579</span><a id="line.579"></a>
+<span class="sourceLineNo">580</span><a id="line.580">    /**</a>
+<span class="sourceLineNo">581</span><a id="line.581">     * Create one container for input, and one for output.</a>
+<span class="sourceLineNo">582</span><a id="line.582">     */</a>
+<span class="sourceLineNo">583</span><a id="line.583">    mIContainer = IContainer.make();</a>
+<span class="sourceLineNo">584</span><a id="line.584">    mOContainer = IContainer.make();</a>
+<span class="sourceLineNo">585</span><a id="line.585">    </a>
+<span class="sourceLineNo">586</span><a id="line.586">    String cpreset = cmdLine.getOptionValue("cpreset");</a>
+<span class="sourceLineNo">587</span><a id="line.587">    if (cpreset != null)</a>
+<span class="sourceLineNo">588</span><a id="line.588">      Configuration.configure(cpreset, mOContainer);</a>
+<span class="sourceLineNo">589</span><a id="line.589">    </a>
+<span class="sourceLineNo">590</span><a id="line.590">    IContainerFormat iFmt = null;</a>
+<span class="sourceLineNo">591</span><a id="line.591">    IContainerFormat oFmt = null;</a>
+<span class="sourceLineNo">592</span><a id="line.592"></a>
+<span class="sourceLineNo">593</span><a id="line.593">    </a>
+<span class="sourceLineNo">594</span><a id="line.594">    // override input format</a>
+<span class="sourceLineNo">595</span><a id="line.595">    if (icontainerFormat != null)</a>
+<span class="sourceLineNo">596</span><a id="line.596">    {</a>
+<span class="sourceLineNo">597</span><a id="line.597">      iFmt = IContainerFormat.make();</a>
+<span class="sourceLineNo">598</span><a id="line.598">     </a>
+<span class="sourceLineNo">599</span><a id="line.599">      /**</a>
+<span class="sourceLineNo">600</span><a id="line.600">       * Try to find an output format based on what the user specified, or</a>
+<span class="sourceLineNo">601</span><a id="line.601">       * failing that, based on the outputURL (e.g. if it ends in .flv, we'll</a>
+<span class="sourceLineNo">602</span><a id="line.602">       * guess FLV).</a>
+<span class="sourceLineNo">603</span><a id="line.603">       */</a>
+<span class="sourceLineNo">604</span><a id="line.604">      retval = iFmt.setInputFormat(icontainerFormat);</a>
+<span class="sourceLineNo">605</span><a id="line.605">      if (retval &lt; 0)</a>
+<span class="sourceLineNo">606</span><a id="line.606">        throw new RuntimeException("could not find input container format: "</a>
+<span class="sourceLineNo">607</span><a id="line.607">            + icontainerFormat);</a>
+<span class="sourceLineNo">608</span><a id="line.608">    }    </a>
+<span class="sourceLineNo">609</span><a id="line.609">    </a>
+<span class="sourceLineNo">610</span><a id="line.610">    // override the input codec</a>
+<span class="sourceLineNo">611</span><a id="line.611">    if (iacodec != null)</a>
+<span class="sourceLineNo">612</span><a id="line.612">    {</a>
+<span class="sourceLineNo">613</span><a id="line.613">      ICodec codec = null;</a>
+<span class="sourceLineNo">614</span><a id="line.614">      /**</a>
+<span class="sourceLineNo">615</span><a id="line.615">       * Looks like they did specify one; let's look it up by name.</a>
+<span class="sourceLineNo">616</span><a id="line.616">       */</a>
+<span class="sourceLineNo">617</span><a id="line.617">      codec = ICodec.findDecodingCodecByName(iacodec);</a>
+<span class="sourceLineNo">618</span><a id="line.618">      if (codec == null || codec.getType() != ICodec.Type.CODEC_TYPE_AUDIO)</a>
+<span class="sourceLineNo">619</span><a id="line.619">        throw new RuntimeException("could not find decoder: " + iacodec);</a>
+<span class="sourceLineNo">620</span><a id="line.620">      /**</a>
+<span class="sourceLineNo">621</span><a id="line.621">       * Now, tell the output stream coder that it's to use that codec.</a>
+<span class="sourceLineNo">622</span><a id="line.622">       */</a>
+<span class="sourceLineNo">623</span><a id="line.623">      mIContainer.setForcedAudioCodec(codec.getID());</a>
+<span class="sourceLineNo">624</span><a id="line.624">    }</a>
+<span class="sourceLineNo">625</span><a id="line.625">    </a>
+<span class="sourceLineNo">626</span><a id="line.626"></a>
+<span class="sourceLineNo">627</span><a id="line.627">    /**</a>
+<span class="sourceLineNo">628</span><a id="line.628">     * Open the input container for Reading.</a>
+<span class="sourceLineNo">629</span><a id="line.629">     */</a>
+<span class="sourceLineNo">630</span><a id="line.630">    IMetaData parameters = IMetaData.make();</a>
+<span class="sourceLineNo">631</span><a id="line.631">    </a>
+<span class="sourceLineNo">632</span><a id="line.632">    if (isampleRate &gt; 0)</a>
+<span class="sourceLineNo">633</span><a id="line.633">      parameters.setValue("sample_rate", ""+isampleRate);</a>
+<span class="sourceLineNo">634</span><a id="line.634"></a>
+<span class="sourceLineNo">635</span><a id="line.635">    if (ichannels &gt; 0)</a>
+<span class="sourceLineNo">636</span><a id="line.636">      parameters.setValue("channels", ""+ichannels);</a>
+<span class="sourceLineNo">637</span><a id="line.637">    </a>
+<span class="sourceLineNo">638</span><a id="line.638">    IMetaData rejectParameters = IMetaData.make();</a>
+<span class="sourceLineNo">639</span><a id="line.639"></a>
+<span class="sourceLineNo">640</span><a id="line.640">    retval = mIContainer.open(inputURL, IContainer.Type.READ, iFmt, false, true, </a>
+<span class="sourceLineNo">641</span><a id="line.641">        parameters, rejectParameters);</a>
+<span class="sourceLineNo">642</span><a id="line.642">    if (retval &lt; 0)</a>
+<span class="sourceLineNo">643</span><a id="line.643">      throw new RuntimeException("could not open url: " + inputURL);</a>
+<span class="sourceLineNo">644</span><a id="line.644">    if (rejectParameters.getNumKeys() &gt; 0)</a>
+<span class="sourceLineNo">645</span><a id="line.645">      throw new RuntimeException("some parameters were rejected: " + rejectParameters);</a>
+<span class="sourceLineNo">646</span><a id="line.646">    /**</a>
+<span class="sourceLineNo">647</span><a id="line.647">     * If the user EXPLICITLY asked for a output container format, we'll try to</a>
+<span class="sourceLineNo">648</span><a id="line.648">     * honor their request here.</a>
+<span class="sourceLineNo">649</span><a id="line.649">     */</a>
+<span class="sourceLineNo">650</span><a id="line.650">    if (containerFormat != null)</a>
+<span class="sourceLineNo">651</span><a id="line.651">    {</a>
+<span class="sourceLineNo">652</span><a id="line.652">      oFmt = IContainerFormat.make();</a>
+<span class="sourceLineNo">653</span><a id="line.653">      /**</a>
+<span class="sourceLineNo">654</span><a id="line.654">       * Try to find an output format based on what the user specified, or</a>
+<span class="sourceLineNo">655</span><a id="line.655">       * failing that, based on the outputURL (e.g. if it ends in .flv, we'll</a>
+<span class="sourceLineNo">656</span><a id="line.656">       * guess FLV).</a>
+<span class="sourceLineNo">657</span><a id="line.657">       */</a>
+<span class="sourceLineNo">658</span><a id="line.658">      retval = oFmt.setOutputFormat(containerFormat, outputURL, null);</a>
+<span class="sourceLineNo">659</span><a id="line.659">      if (retval &lt; 0)</a>
+<span class="sourceLineNo">660</span><a id="line.660">        throw new RuntimeException("could not find output container format: "</a>
+<span class="sourceLineNo">661</span><a id="line.661">            + containerFormat);</a>
+<span class="sourceLineNo">662</span><a id="line.662">    }</a>
+<span class="sourceLineNo">663</span><a id="line.663">       </a>
+<span class="sourceLineNo">664</span><a id="line.664">    /**</a>
+<span class="sourceLineNo">665</span><a id="line.665">     * Open the output container for writing. If oFmt is null, we are telling</a>
+<span class="sourceLineNo">666</span><a id="line.666">     * AVPKit to guess the output container format based on the outputURL.</a>
+<span class="sourceLineNo">667</span><a id="line.667">     */</a>
+<span class="sourceLineNo">668</span><a id="line.668">    retval = mOContainer.open(outputURL, IContainer.Type.WRITE, oFmt);</a>
+<span class="sourceLineNo">669</span><a id="line.669">    if (retval &lt; 0)</a>
+<span class="sourceLineNo">670</span><a id="line.670">      throw new RuntimeException("could not open output url: " + outputURL);</a>
+<span class="sourceLineNo">671</span><a id="line.671"></a>
+<span class="sourceLineNo">672</span><a id="line.672">    /**</a>
+<span class="sourceLineNo">673</span><a id="line.673">     * Find out how many streams are there in the input container? For example,</a>
+<span class="sourceLineNo">674</span><a id="line.674">     * most FLV files will have 2 -- 1 audio stream and 1 video stream.</a>
+<span class="sourceLineNo">675</span><a id="line.675">     */</a>
+<span class="sourceLineNo">676</span><a id="line.676">    int numStreams = mIContainer.getNumStreams();</a>
+<span class="sourceLineNo">677</span><a id="line.677">    if (numStreams &lt;= 0)</a>
+<span class="sourceLineNo">678</span><a id="line.678">      throw new RuntimeException("not streams in input url: " + inputURL);</a>
+<span class="sourceLineNo">679</span><a id="line.679"></a>
+<span class="sourceLineNo">680</span><a id="line.680">    /**</a>
+<span class="sourceLineNo">681</span><a id="line.681">     * Here we create IStream, IStreamCoders and other objects for each input</a>
+<span class="sourceLineNo">682</span><a id="line.682">     * stream.</a>
+<span class="sourceLineNo">683</span><a id="line.683">     * </a>
+<span class="sourceLineNo">684</span><a id="line.684">     * We make parallel objects for each output stream as well.</a>
+<span class="sourceLineNo">685</span><a id="line.685">     */</a>
+<span class="sourceLineNo">686</span><a id="line.686">    mIStreams = new IStream[numStreams];</a>
+<span class="sourceLineNo">687</span><a id="line.687">    mICoders = new IStreamCoder[numStreams];</a>
+<span class="sourceLineNo">688</span><a id="line.688">    mOStreams = new IStream[numStreams];</a>
+<span class="sourceLineNo">689</span><a id="line.689">    mOCoders = new IStreamCoder[numStreams];</a>
+<span class="sourceLineNo">690</span><a id="line.690">    mASamplers = new IAudioResampler[numStreams];</a>
+<span class="sourceLineNo">691</span><a id="line.691">    mVSamplers = new IVideoResampler[numStreams];</a>
+<span class="sourceLineNo">692</span><a id="line.692">    mIVideoPictures = new IVideoPicture[numStreams];</a>
+<span class="sourceLineNo">693</span><a id="line.693">    mOVideoPictures = new IVideoPicture[numStreams];</a>
+<span class="sourceLineNo">694</span><a id="line.694">    mISamples = new IAudioSamples[numStreams];</a>
+<span class="sourceLineNo">695</span><a id="line.695">    mOSamples = new IAudioSamples[numStreams];</a>
+<span class="sourceLineNo">696</span><a id="line.696"></a>
+<span class="sourceLineNo">697</span><a id="line.697">    /**</a>
+<span class="sourceLineNo">698</span><a id="line.698">     * Now let's go through the input streams one by one and explicitly set up</a>
+<span class="sourceLineNo">699</span><a id="line.699">     * our contexts.</a>
+<span class="sourceLineNo">700</span><a id="line.700">     */</a>
+<span class="sourceLineNo">701</span><a id="line.701">    for (int i = 0; i &lt; numStreams; i++)</a>
+<span class="sourceLineNo">702</span><a id="line.702">    {</a>
+<span class="sourceLineNo">703</span><a id="line.703">      /**</a>
+<span class="sourceLineNo">704</span><a id="line.704">       * Get the IStream for this input stream.</a>
+<span class="sourceLineNo">705</span><a id="line.705">       */</a>
+<span class="sourceLineNo">706</span><a id="line.706">      IStream is = mIContainer.getStream(i);</a>
+<span class="sourceLineNo">707</span><a id="line.707">      /**</a>
+<span class="sourceLineNo">708</span><a id="line.708">       * And get the input stream coder. AVPKit will set up all sorts of</a>
+<span class="sourceLineNo">709</span><a id="line.709">       * defaults on this StreamCoder for you (such as the audio sample rate)</a>
+<span class="sourceLineNo">710</span><a id="line.710">       * when you open it.</a>
+<span class="sourceLineNo">711</span><a id="line.711">       * </a>
+<span class="sourceLineNo">712</span><a id="line.712">       * You can create IStreamCoders yourself using</a>
+<span class="sourceLineNo">713</span><a id="line.713">       * IStreamCoder#make(IStreamCoder.Direction), but then you have to set all</a>
+<span class="sourceLineNo">714</span><a id="line.714">       * parameters yourself.</a>
+<span class="sourceLineNo">715</span><a id="line.715">       */</a>
+<span class="sourceLineNo">716</span><a id="line.716">      IStreamCoder ic = is.getStreamCoder();</a>
+<span class="sourceLineNo">717</span><a id="line.717"></a>
+<span class="sourceLineNo">718</span><a id="line.718">      /**</a>
+<span class="sourceLineNo">719</span><a id="line.719">       * Find out what Codec AVPKit guessed the input stream was encoded with.</a>
+<span class="sourceLineNo">720</span><a id="line.720">       */</a>
+<span class="sourceLineNo">721</span><a id="line.721">      ICodec.Type cType = ic.getCodecType();</a>
+<span class="sourceLineNo">722</span><a id="line.722"></a>
+<span class="sourceLineNo">723</span><a id="line.723">      mIStreams[i] = is;</a>
+<span class="sourceLineNo">724</span><a id="line.724">      mICoders[i] = ic;</a>
+<span class="sourceLineNo">725</span><a id="line.725">      mOStreams[i] = null;</a>
+<span class="sourceLineNo">726</span><a id="line.726">      mOCoders[i] = null;</a>
+<span class="sourceLineNo">727</span><a id="line.727">      mASamplers[i] = null;</a>
+<span class="sourceLineNo">728</span><a id="line.728">      mVSamplers[i] = null;</a>
+<span class="sourceLineNo">729</span><a id="line.729">      mIVideoPictures[i] = null;</a>
+<span class="sourceLineNo">730</span><a id="line.730">      mOVideoPictures[i] = null;</a>
+<span class="sourceLineNo">731</span><a id="line.731">      mISamples[i] = null;</a>
+<span class="sourceLineNo">732</span><a id="line.732">      mOSamples[i] = null;</a>
+<span class="sourceLineNo">733</span><a id="line.733"></a>
+<span class="sourceLineNo">734</span><a id="line.734">      if (cType == ICodec.Type.CODEC_TYPE_AUDIO &amp;&amp; mHasAudio</a>
+<span class="sourceLineNo">735</span><a id="line.735">          &amp;&amp; (astream == -1 || astream == i))</a>
+<span class="sourceLineNo">736</span><a id="line.736">      {</a>
+<span class="sourceLineNo">737</span><a id="line.737">         /**</a>
+<span class="sourceLineNo">738</span><a id="line.738">         * First, did the user specify an audio codec?</a>
+<span class="sourceLineNo">739</span><a id="line.739">         */</a>
+<span class="sourceLineNo">740</span><a id="line.740">        ICodec codec = null;</a>
+<span class="sourceLineNo">741</span><a id="line.741">        if (acodec != null)</a>
+<span class="sourceLineNo">742</span><a id="line.742">        {</a>
+<span class="sourceLineNo">743</span><a id="line.743">          /**</a>
+<span class="sourceLineNo">744</span><a id="line.744">           * Looks like they did specify one; let's look it up by name.</a>
+<span class="sourceLineNo">745</span><a id="line.745">           */</a>
+<span class="sourceLineNo">746</span><a id="line.746">          codec = ICodec.findEncodingCodecByName(acodec);</a>
+<span class="sourceLineNo">747</span><a id="line.747">          if (codec == null || codec.getType() != cType)</a>
+<span class="sourceLineNo">748</span><a id="line.748">            throw new RuntimeException("could not find encoder: " + acodec);</a>
+<span class="sourceLineNo">749</span><a id="line.749"> </a>
+<span class="sourceLineNo">750</span><a id="line.750">        }</a>
+<span class="sourceLineNo">751</span><a id="line.751">        else</a>
+<span class="sourceLineNo">752</span><a id="line.752">        {</a>
+<span class="sourceLineNo">753</span><a id="line.753">          /**</a>
+<span class="sourceLineNo">754</span><a id="line.754">           * Looks like the user didn't specify an output coder for audio.</a>
+<span class="sourceLineNo">755</span><a id="line.755">           * </a>
+<span class="sourceLineNo">756</span><a id="line.756">           * So we ask AVPKit to guess an appropriate output coded based on the</a>
+<span class="sourceLineNo">757</span><a id="line.757">           * URL, container format, and that it's audio.</a>
+<span class="sourceLineNo">758</span><a id="line.758">           */</a>
+<span class="sourceLineNo">759</span><a id="line.759">          codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,</a>
+<span class="sourceLineNo">760</span><a id="line.760">              cType);</a>
+<span class="sourceLineNo">761</span><a id="line.761">          if (codec == null)</a>
+<span class="sourceLineNo">762</span><a id="line.762">            throw new RuntimeException("could not guess " + cType</a>
+<span class="sourceLineNo">763</span><a id="line.763">                + " encoder for: " + outputURL);</a>
+<span class="sourceLineNo">764</span><a id="line.764">        }</a>
+<span class="sourceLineNo">765</span><a id="line.765">        /**</a>
+<span class="sourceLineNo">766</span><a id="line.766">         * So it looks like this stream as an audio stream. Now we add an audio</a>
+<span class="sourceLineNo">767</span><a id="line.767">         * stream to the output container that we will use to encode our</a>
+<span class="sourceLineNo">768</span><a id="line.768">         * resampled audio.</a>
+<span class="sourceLineNo">769</span><a id="line.769">         */</a>
+<span class="sourceLineNo">770</span><a id="line.770">        IStream os = mOContainer.addNewStream(codec);</a>
+<span class="sourceLineNo">771</span><a id="line.771"></a>
+<span class="sourceLineNo">772</span><a id="line.772">        /**</a>
+<span class="sourceLineNo">773</span><a id="line.773">         * And we ask the IStream for an appropriately configured IStreamCoder</a>
+<span class="sourceLineNo">774</span><a id="line.774">         * for output.</a>
+<span class="sourceLineNo">775</span><a id="line.775">         * </a>
+<span class="sourceLineNo">776</span><a id="line.776">         * Unfortunately you still need to specify a lot of things for</a>
+<span class="sourceLineNo">777</span><a id="line.777">         * outputting (because we can't really guess what you want to encode</a>
+<span class="sourceLineNo">778</span><a id="line.778">         * as).</a>
+<span class="sourceLineNo">779</span><a id="line.779">         */</a>
+<span class="sourceLineNo">780</span><a id="line.780">        IStreamCoder oc = os.getStreamCoder();</a>
+<span class="sourceLineNo">781</span><a id="line.781"></a>
+<span class="sourceLineNo">782</span><a id="line.782">        mOStreams[i] = os;</a>
+<span class="sourceLineNo">783</span><a id="line.783">        mOCoders[i] = oc;</a>
+<span class="sourceLineNo">784</span><a id="line.784"></a>
+<span class="sourceLineNo">785</span><a id="line.785">       /**</a>
+<span class="sourceLineNo">786</span><a id="line.786">         * Now let's see if the codec can support the input sample format; if not</a>
+<span class="sourceLineNo">787</span><a id="line.787">         * we pick the last sample format the codec supports.</a>
+<span class="sourceLineNo">788</span><a id="line.788">         */</a>
+<span class="sourceLineNo">789</span><a id="line.789">        Format preferredFormat = ic.getSampleFormat();</a>
+<span class="sourceLineNo">790</span><a id="line.790">        </a>
+<span class="sourceLineNo">791</span><a id="line.791">        List&lt;Format&gt; formats = codec.getSupportedAudioSampleFormats();</a>
+<span class="sourceLineNo">792</span><a id="line.792">        for(Format format : formats) {</a>
+<span class="sourceLineNo">793</span><a id="line.793">          oc.setSampleFormat(format);</a>
+<span class="sourceLineNo">794</span><a id="line.794">          if (format == preferredFormat)</a>
+<span class="sourceLineNo">795</span><a id="line.795">            break;</a>
+<span class="sourceLineNo">796</span><a id="line.796">        }</a>
+<span class="sourceLineNo">797</span><a id="line.797"></a>
+<span class="sourceLineNo">798</span><a id="line.798">        final String apreset = cmdLine.getOptionValue("apreset");</a>
+<span class="sourceLineNo">799</span><a id="line.799">        if (apreset != null)</a>
+<span class="sourceLineNo">800</span><a id="line.800">          Configuration.configure(apreset, oc);</a>
+<span class="sourceLineNo">801</span><a id="line.801">        </a>
+<span class="sourceLineNo">802</span><a id="line.802">        /**</a>
+<span class="sourceLineNo">803</span><a id="line.803">         * In general a IStreamCoder encoding audio needs to know: 1) A ICodec</a>
+<span class="sourceLineNo">804</span><a id="line.804">         * to use. 2) The sample rate and number of channels of the audio. Most</a>
+<span class="sourceLineNo">805</span><a id="line.805">         * everything else can be defaulted.</a>
+<span class="sourceLineNo">806</span><a id="line.806">         */</a>
+<span class="sourceLineNo">807</span><a id="line.807"></a>
+<span class="sourceLineNo">808</span><a id="line.808">        /**</a>
+<span class="sourceLineNo">809</span><a id="line.809">         * If the user didn't specify a sample rate to encode as, then just use</a>
+<span class="sourceLineNo">810</span><a id="line.810">         * the same sample rate as the input.</a>
+<span class="sourceLineNo">811</span><a id="line.811">         */</a>
+<span class="sourceLineNo">812</span><a id="line.812">        if (sampleRate == 0)</a>
+<span class="sourceLineNo">813</span><a id="line.813">          sampleRate = ic.getSampleRate();</a>
+<span class="sourceLineNo">814</span><a id="line.814">        oc.setSampleRate(sampleRate);</a>
+<span class="sourceLineNo">815</span><a id="line.815">        /**</a>
+<span class="sourceLineNo">816</span><a id="line.816">         * If the user didn't specify a bit rate to encode as, then just use the</a>
+<span class="sourceLineNo">817</span><a id="line.817">         * same bit as the input.</a>
+<span class="sourceLineNo">818</span><a id="line.818">         */</a>
+<span class="sourceLineNo">819</span><a id="line.819">        if (abitrate == 0)</a>
+<span class="sourceLineNo">820</span><a id="line.820">          abitrate = ic.getBitRate();</a>
+<span class="sourceLineNo">821</span><a id="line.821">        if (abitrate == 0)</a>
+<span class="sourceLineNo">822</span><a id="line.822">          // some containers don't give a bit-rate</a>
+<span class="sourceLineNo">823</span><a id="line.823">          abitrate = 64000;</a>
+<span class="sourceLineNo">824</span><a id="line.824">        oc.setBitRate(abitrate);</a>
+<span class="sourceLineNo">825</span><a id="line.825">        </a>
+<span class="sourceLineNo">826</span><a id="line.826">        /**</a>
+<span class="sourceLineNo">827</span><a id="line.827">         * If the user didn't specify the number of channels to encode audio as,</a>
+<span class="sourceLineNo">828</span><a id="line.828">         * just assume we're keeping the same number of channels.</a>
+<span class="sourceLineNo">829</span><a id="line.829">         */</a>
+<span class="sourceLineNo">830</span><a id="line.830">        if (channels == 0)</a>
+<span class="sourceLineNo">831</span><a id="line.831">          channels = ic.getChannels();</a>
+<span class="sourceLineNo">832</span><a id="line.832">        oc.setChannels(channels);</a>
+<span class="sourceLineNo">833</span><a id="line.833"></a>
+<span class="sourceLineNo">834</span><a id="line.834">        /**</a>
+<span class="sourceLineNo">835</span><a id="line.835">         * And set the quality (which defaults to 0, or highest, if the user</a>
+<span class="sourceLineNo">836</span><a id="line.836">         * doesn't tell us one).</a>
+<span class="sourceLineNo">837</span><a id="line.837">         */</a>
+<span class="sourceLineNo">838</span><a id="line.838">        oc.setGlobalQuality(aquality);</a>
+<span class="sourceLineNo">839</span><a id="line.839"></a>
+<span class="sourceLineNo">840</span><a id="line.840">        /**</a>
+<span class="sourceLineNo">841</span><a id="line.841">         * Now check if our output channels or sample rate differ from our input</a>
+<span class="sourceLineNo">842</span><a id="line.842">         * channels or sample rate.</a>
+<span class="sourceLineNo">843</span><a id="line.843">         * </a>
+<span class="sourceLineNo">844</span><a id="line.844">         * If they do, we're going to need to resample the input audio to be in</a>
+<span class="sourceLineNo">845</span><a id="line.845">         * the right format to output.</a>
+<span class="sourceLineNo">846</span><a id="line.846">         */</a>
+<span class="sourceLineNo">847</span><a id="line.847">        if (oc.getChannels() != ic.getChannels()</a>
+<span class="sourceLineNo">848</span><a id="line.848">            || oc.getSampleRate() != ic.getSampleRate()</a>
+<span class="sourceLineNo">849</span><a id="line.849">            || oc.getSampleFormat() != ic.getSampleFormat())</a>
+<span class="sourceLineNo">850</span><a id="line.850">        {</a>
+<span class="sourceLineNo">851</span><a id="line.851">          /**</a>
+<span class="sourceLineNo">852</span><a id="line.852">           * Create an audio resampler to do that job.</a>
+<span class="sourceLineNo">853</span><a id="line.853">           */</a>
+<span class="sourceLineNo">854</span><a id="line.854">          mASamplers[i] = IAudioResampler.make(oc.getChannels(), ic</a>
+<span class="sourceLineNo">855</span><a id="line.855">              .getChannels(), oc.getSampleRate(), ic.getSampleRate(),</a>
+<span class="sourceLineNo">856</span><a id="line.856">              IAudioSamples.Format.FMT_S16, IAudioSamples.Format.FMT_S16);</a>
+<span class="sourceLineNo">857</span><a id="line.857">          if (mASamplers[i] == null)</a>
+<span class="sourceLineNo">858</span><a id="line.858">          {</a>
+<span class="sourceLineNo">859</span><a id="line.859">            throw new RuntimeException(</a>
+<span class="sourceLineNo">860</span><a id="line.860">                "could not open audio resampler for stream: " + i);</a>
+<span class="sourceLineNo">861</span><a id="line.861">          }</a>
+<span class="sourceLineNo">862</span><a id="line.862">        }</a>
+<span class="sourceLineNo">863</span><a id="line.863">        else</a>
+<span class="sourceLineNo">864</span><a id="line.864">        {</a>
+<span class="sourceLineNo">865</span><a id="line.865">          mASamplers[i] = null;</a>
+<span class="sourceLineNo">866</span><a id="line.866">        }</a>
+<span class="sourceLineNo">867</span><a id="line.867">        /**</a>
+<span class="sourceLineNo">868</span><a id="line.868">         * Finally, create some buffers for the input and output audio</a>
+<span class="sourceLineNo">869</span><a id="line.869">         * themselves.</a>
+<span class="sourceLineNo">870</span><a id="line.870">         * </a>
+<span class="sourceLineNo">871</span><a id="line.871">         * We'll use these repeated during the #run(CommandLine) method.</a>
+<span class="sourceLineNo">872</span><a id="line.872">         */</a>
+<span class="sourceLineNo">873</span><a id="line.873">        mISamples[i] = IAudioSamples.make(1024, ic.getChannels(), ic.getSampleFormat());</a>
+<span class="sourceLineNo">874</span><a id="line.874">        mOSamples[i] = IAudioSamples.make(1024, oc.getChannels(), oc.getSampleFormat());</a>
+<span class="sourceLineNo">875</span><a id="line.875">      }</a>
+<span class="sourceLineNo">876</span><a id="line.876">      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO &amp;&amp; mHasVideo</a>
+<span class="sourceLineNo">877</span><a id="line.877">          &amp;&amp; (vstream == -1 || vstream == i))</a>
+<span class="sourceLineNo">878</span><a id="line.878">      {</a>
+<span class="sourceLineNo">879</span><a id="line.879">        /**</a>
+<span class="sourceLineNo">880</span><a id="line.880">         * If you're reading these commends, this does the same thing as the</a>
+<span class="sourceLineNo">881</span><a id="line.881">         * above branch, only for video. I'm going to assume you read those</a>
+<span class="sourceLineNo">882</span><a id="line.882">         * comments and will only document something substantially different</a>
+<span class="sourceLineNo">883</span><a id="line.883">         * here.</a>
+<span class="sourceLineNo">884</span><a id="line.884">         */</a>
+<span class="sourceLineNo">885</span><a id="line.885">        ICodec codec = null;</a>
+<span class="sourceLineNo">886</span><a id="line.886">        if (vcodec != null)</a>
+<span class="sourceLineNo">887</span><a id="line.887">        {</a>
+<span class="sourceLineNo">888</span><a id="line.888">          codec = ICodec.findEncodingCodecByName(vcodec);</a>
+<span class="sourceLineNo">889</span><a id="line.889">          if (codec == null || codec.getType() != cType)</a>
+<span class="sourceLineNo">890</span><a id="line.890">            throw new RuntimeException("could not find encoder: " + vcodec);</a>
+<span class="sourceLineNo">891</span><a id="line.891">        }</a>
+<span class="sourceLineNo">892</span><a id="line.892">        else</a>
+<span class="sourceLineNo">893</span><a id="line.893">        {</a>
+<span class="sourceLineNo">894</span><a id="line.894">          codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,</a>
+<span class="sourceLineNo">895</span><a id="line.895">              cType);</a>
+<span class="sourceLineNo">896</span><a id="line.896">          if (codec == null)</a>
+<span class="sourceLineNo">897</span><a id="line.897">            throw new RuntimeException("could not guess " + cType</a>
+<span class="sourceLineNo">898</span><a id="line.898">                + " encoder for: " + outputURL);</a>
+<span class="sourceLineNo">899</span><a id="line.899"></a>
+<span class="sourceLineNo">900</span><a id="line.900">        }</a>
+<span class="sourceLineNo">901</span><a id="line.901">        final IStream os = mOContainer.addNewStream(codec);</a>
+<span class="sourceLineNo">902</span><a id="line.902">        final IStreamCoder oc = os.getStreamCoder();</a>
+<span class="sourceLineNo">903</span><a id="line.903"></a>
+<span class="sourceLineNo">904</span><a id="line.904">        mOStreams[i] = os;</a>
+<span class="sourceLineNo">905</span><a id="line.905">        mOCoders[i] = oc;</a>
+<span class="sourceLineNo">906</span><a id="line.906"></a>
+<span class="sourceLineNo">907</span><a id="line.907"></a>
+<span class="sourceLineNo">908</span><a id="line.908">        // Set options AFTER selecting codec</a>
+<span class="sourceLineNo">909</span><a id="line.909">        final String vpreset = cmdLine.getOptionValue("vpreset");</a>
+<span class="sourceLineNo">910</span><a id="line.910">        if (vpreset != null)</a>
+<span class="sourceLineNo">911</span><a id="line.911">          Configuration.configure(vpreset, oc);</a>
+<span class="sourceLineNo">912</span><a id="line.912">        </a>
+<span class="sourceLineNo">913</span><a id="line.913">        /**</a>
+<span class="sourceLineNo">914</span><a id="line.914">         * In general a IStreamCoder encoding video needs to know: 1) A ICodec</a>
+<span class="sourceLineNo">915</span><a id="line.915">         * to use. 2) The Width and Height of the Video 3) The pixel format</a>
+<span class="sourceLineNo">916</span><a id="line.916">         * (e.g. IPixelFormat.Type#YUV420P) of the video data. Most everything</a>
+<span class="sourceLineNo">917</span><a id="line.917">         * else can be defaulted.</a>
+<span class="sourceLineNo">918</span><a id="line.918">         */</a>
+<span class="sourceLineNo">919</span><a id="line.919">        if (vbitrate == 0)</a>
+<span class="sourceLineNo">920</span><a id="line.920">          vbitrate = ic.getBitRate();</a>
+<span class="sourceLineNo">921</span><a id="line.921">        if (vbitrate == 0)</a>
+<span class="sourceLineNo">922</span><a id="line.922">          vbitrate = 250000;</a>
+<span class="sourceLineNo">923</span><a id="line.923">        oc.setBitRate(vbitrate);</a>
+<span class="sourceLineNo">924</span><a id="line.924">        if (vbitratetolerance &gt; 0)</a>
+<span class="sourceLineNo">925</span><a id="line.925">          oc.setBitRateTolerance(vbitratetolerance);</a>
+<span class="sourceLineNo">926</span><a id="line.926"></a>
+<span class="sourceLineNo">927</span><a id="line.927">        int oWidth = ic.getWidth();</a>
+<span class="sourceLineNo">928</span><a id="line.928">        int oHeight = ic.getHeight();</a>
+<span class="sourceLineNo">929</span><a id="line.929"></a>
+<span class="sourceLineNo">930</span><a id="line.930">        if (oHeight &lt;= 0 || oWidth &lt;= 0)</a>
+<span class="sourceLineNo">931</span><a id="line.931">          throw new RuntimeException("could not find width or height in url: "</a>
+<span class="sourceLineNo">932</span><a id="line.932">              + inputURL);</a>
+<span class="sourceLineNo">933</span><a id="line.933"></a>
+<span class="sourceLineNo">934</span><a id="line.934">        /**</a>
+<span class="sourceLineNo">935</span><a id="line.935">         * For this program we don't allow the user to specify the pixel format</a>
+<span class="sourceLineNo">936</span><a id="line.936">         * type; we force the output to be the same as the input.</a>
+<span class="sourceLineNo">937</span><a id="line.937">         */</a>
+<span class="sourceLineNo">938</span><a id="line.938">        oc.setPixelType(ic.getPixelType());</a>
+<span class="sourceLineNo">939</span><a id="line.939"></a>
+<span class="sourceLineNo">940</span><a id="line.940">        if (vscaleFactor != 1.0)</a>
+<span class="sourceLineNo">941</span><a id="line.941">        {</a>
+<span class="sourceLineNo">942</span><a id="line.942">          /**</a>
+<span class="sourceLineNo">943</span><a id="line.943">           * In this case, it looks like the output video requires rescaling, so</a>
+<span class="sourceLineNo">944</span><a id="line.944">           * we create a IVideoResampler to do that dirty work.</a>
+<span class="sourceLineNo">945</span><a id="line.945">           */</a>
+<span class="sourceLineNo">946</span><a id="line.946">          oWidth = (int) (oWidth * vscaleFactor);</a>
+<span class="sourceLineNo">947</span><a id="line.947">          oHeight = (int) (oHeight * vscaleFactor);</a>
+<span class="sourceLineNo">948</span><a id="line.948"></a>
+<span class="sourceLineNo">949</span><a id="line.949">          mVSamplers[i] = IVideoResampler</a>
+<span class="sourceLineNo">950</span><a id="line.950">              .make(oWidth, oHeight, oc.getPixelType(), ic.getWidth(), ic</a>
+<span class="sourceLineNo">951</span><a id="line.951">                  .getHeight(), ic.getPixelType());</a>
+<span class="sourceLineNo">952</span><a id="line.952">          if (mVSamplers[i] == null)</a>
+<span class="sourceLineNo">953</span><a id="line.953">          {</a>
+<span class="sourceLineNo">954</span><a id="line.954">            throw new RuntimeException(</a>
+<span class="sourceLineNo">955</span><a id="line.955">                "This version of AVPKit does not support video resampling "</a>
+<span class="sourceLineNo">956</span><a id="line.956">                    + i);</a>
+<span class="sourceLineNo">957</span><a id="line.957">          }</a>
+<span class="sourceLineNo">958</span><a id="line.958">        }</a>
+<span class="sourceLineNo">959</span><a id="line.959">        else</a>
+<span class="sourceLineNo">960</span><a id="line.960">        {</a>
+<span class="sourceLineNo">961</span><a id="line.961">          mVSamplers[i] = null;</a>
+<span class="sourceLineNo">962</span><a id="line.962">        }</a>
+<span class="sourceLineNo">963</span><a id="line.963">        oc.setHeight(oHeight);</a>
+<span class="sourceLineNo">964</span><a id="line.964">        oc.setWidth(oWidth);</a>
+<span class="sourceLineNo">965</span><a id="line.965"></a>
+<span class="sourceLineNo">966</span><a id="line.966">        if (vquality &gt;= 0)</a>
+<span class="sourceLineNo">967</span><a id="line.967">        {</a>
+<span class="sourceLineNo">968</span><a id="line.968">          oc.setFlag(IStreamCoder.Flags.FLAG_QSCALE, true);</a>
+<span class="sourceLineNo">969</span><a id="line.969">          oc.setGlobalQuality(vquality);</a>
+<span class="sourceLineNo">970</span><a id="line.970">        }</a>
+<span class="sourceLineNo">971</span><a id="line.971"></a>
+<span class="sourceLineNo">972</span><a id="line.972">        /**</a>
+<span class="sourceLineNo">973</span><a id="line.973">         * TimeBases are important, especially for Video. In general Audio</a>
+<span class="sourceLineNo">974</span><a id="line.974">         * encoders will assume that any new audio happens IMMEDIATELY after any</a>
+<span class="sourceLineNo">975</span><a id="line.975">         * prior audio finishes playing. But for video, we need to make sure</a>
+<span class="sourceLineNo">976</span><a id="line.976">         * it's being output at the right rate.</a>
+<span class="sourceLineNo">977</span><a id="line.977">         * </a>
+<span class="sourceLineNo">978</span><a id="line.978">         * In this case we make sure we set the same time base as the input, and</a>
+<span class="sourceLineNo">979</span><a id="line.979">         * then we don't change the time stamps of any IVideoPictures.</a>
+<span class="sourceLineNo">980</span><a id="line.980">         * </a>
+<span class="sourceLineNo">981</span><a id="line.981">         * But take my word that time stamps are tricky, and this only touches</a>
+<span class="sourceLineNo">982</span><a id="line.982">         * the envelope. The good news is, it's easier in AVPKit than some</a>
+<span class="sourceLineNo">983</span><a id="line.983">         * other systems.</a>
+<span class="sourceLineNo">984</span><a id="line.984">         */</a>
+<span class="sourceLineNo">985</span><a id="line.985">        IRational num = null;</a>
+<span class="sourceLineNo">986</span><a id="line.986">        num = ic.getFrameRate();</a>
+<span class="sourceLineNo">987</span><a id="line.987">        oc.setFrameRate(num);</a>
+<span class="sourceLineNo">988</span><a id="line.988">        oc.setTimeBase(IRational.make(num.getDenominator(), num</a>
+<span class="sourceLineNo">989</span><a id="line.989">                .getNumerator()));</a>
+<span class="sourceLineNo">990</span><a id="line.990">        num = null;</a>
+<span class="sourceLineNo">991</span><a id="line.991"></a>
+<span class="sourceLineNo">992</span><a id="line.992">        /**</a>
+<span class="sourceLineNo">993</span><a id="line.993">         * And allocate buffers for us to store decoded and resample video</a>
+<span class="sourceLineNo">994</span><a id="line.994">         * pictures.</a>
+<span class="sourceLineNo">995</span><a id="line.995">         */</a>
+<span class="sourceLineNo">996</span><a id="line.996">        mIVideoPictures[i] = IVideoPicture.make(ic.getPixelType(), ic</a>
+<span class="sourceLineNo">997</span><a id="line.997">            .getWidth(), ic.getHeight());</a>
+<span class="sourceLineNo">998</span><a id="line.998">        mOVideoPictures[i] = IVideoPicture.make(oc.getPixelType(), oc</a>
+<span class="sourceLineNo">999</span><a id="line.999">            .getWidth(), oc.getHeight());</a>
+<span class="sourceLineNo">1000</span><a id="line.1000">      }</a>
+<span class="sourceLineNo">1001</span><a id="line.1001">      else</a>
+<span class="sourceLineNo">1002</span><a id="line.1002">      {</a>
+<span class="sourceLineNo">1003</span><a id="line.1003">        log.warn("Ignoring input stream {} of type {}", i, cType);</a>
+<span class="sourceLineNo">1004</span><a id="line.1004">      }</a>
+<span class="sourceLineNo">1005</span><a id="line.1005"></a>
+<span class="sourceLineNo">1006</span><a id="line.1006">      /**</a>
+<span class="sourceLineNo">1007</span><a id="line.1007">       * Now, once you've set up all the parameters on the StreamCoder, you must</a>
+<span class="sourceLineNo">1008</span><a id="line.1008">       * open() them so they can do work.</a>
+<span class="sourceLineNo">1009</span><a id="line.1009">       * </a>
+<span class="sourceLineNo">1010</span><a id="line.1010">       * They will return an error if not configured correctly, so we check for</a>
+<span class="sourceLineNo">1011</span><a id="line.1011">       * that here.</a>
+<span class="sourceLineNo">1012</span><a id="line.1012">       */</a>
+<span class="sourceLineNo">1013</span><a id="line.1013">      if (mOCoders[i] != null)</a>
+<span class="sourceLineNo">1014</span><a id="line.1014">      {</a>
+<span class="sourceLineNo">1015</span><a id="line.1015">        // some codecs require experimental mode to be set, and so we set it here.</a>
+<span class="sourceLineNo">1016</span><a id="line.1016">        retval = mOCoders[i].setStandardsCompliance(IStreamCoder.CodecStandardsCompliance.COMPLIANCE_EXPERIMENTAL);</a>
+<span class="sourceLineNo">1017</span><a id="line.1017">        if (retval &lt; 0)</a>
+<span class="sourceLineNo">1018</span><a id="line.1018">          throw new RuntimeException ("could not set compliance mode to experimental");</a>
+<span class="sourceLineNo">1019</span><a id="line.1019">        </a>
+<span class="sourceLineNo">1020</span><a id="line.1020">        retval = mOCoders[i].open(null, null);</a>
+<span class="sourceLineNo">1021</span><a id="line.1021">        if (retval &lt; 0)</a>
+<span class="sourceLineNo">1022</span><a id="line.1022">          throw new RuntimeException(</a>
+<span class="sourceLineNo">1023</span><a id="line.1023">              "could not open output encoder for stream: " + i);</a>
+<span class="sourceLineNo">1024</span><a id="line.1024">        retval = mICoders[i].open(null, null);</a>
+<span class="sourceLineNo">1025</span><a id="line.1025">        if (retval &lt; 0)</a>
+<span class="sourceLineNo">1026</span><a id="line.1026">          throw new RuntimeException(</a>
+<span class="sourceLineNo">1027</span><a id="line.1027">              "could not open input decoder for stream: " + i);</a>
+<span class="sourceLineNo">1028</span><a id="line.1028">      }</a>
+<span class="sourceLineNo">1029</span><a id="line.1029">    }</a>
+<span class="sourceLineNo">1030</span><a id="line.1030"></a>
+<span class="sourceLineNo">1031</span><a id="line.1031">    /**</a>
+<span class="sourceLineNo">1032</span><a id="line.1032">     * Pretty much every output container format has a header they need written,</a>
+<span class="sourceLineNo">1033</span><a id="line.1033">     * so we do that here.</a>
+<span class="sourceLineNo">1034</span><a id="line.1034">     * </a>
+<span class="sourceLineNo">1035</span><a id="line.1035">     * You must configure your output IStreams correctly before writing a</a>
+<span class="sourceLineNo">1036</span><a id="line.1036">     * header, and few formats deal nicely with key parameters changing (e.g.</a>
+<span class="sourceLineNo">1037</span><a id="line.1037">     * video width) after a header is written.</a>
+<span class="sourceLineNo">1038</span><a id="line.1038">     */</a>
+<span class="sourceLineNo">1039</span><a id="line.1039">    retval = mOContainer.writeHeader();</a>
+<span class="sourceLineNo">1040</span><a id="line.1040">    if (retval &lt; 0)</a>
+<span class="sourceLineNo">1041</span><a id="line.1041">      throw new RuntimeException("Could not write header for: " + outputURL);</a>
+<span class="sourceLineNo">1042</span><a id="line.1042"></a>
+<span class="sourceLineNo">1043</span><a id="line.1043">    /**</a>
+<span class="sourceLineNo">1044</span><a id="line.1044">     * That's it with setup; we're good to begin!</a>
+<span class="sourceLineNo">1045</span><a id="line.1045">     */</a>
+<span class="sourceLineNo">1046</span><a id="line.1046">    return numStreams;</a>
+<span class="sourceLineNo">1047</span><a id="line.1047">  }</a>
+<span class="sourceLineNo">1048</span><a id="line.1048"></a>
+<span class="sourceLineNo">1049</span><a id="line.1049">  /**</a>
+<span class="sourceLineNo">1050</span><a id="line.1050">   * Close and release all resources we used to run this program.</a>
+<span class="sourceLineNo">1051</span><a id="line.1051">   */</a>
+<span class="sourceLineNo">1052</span><a id="line.1052">  void closeStreams()</a>
+<span class="sourceLineNo">1053</span><a id="line.1053">  {</a>
+<span class="sourceLineNo">1054</span><a id="line.1054">    int numStreams = 0;</a>
+<span class="sourceLineNo">1055</span><a id="line.1055">    int i = 0;</a>
+<span class="sourceLineNo">1056</span><a id="line.1056"></a>
+<span class="sourceLineNo">1057</span><a id="line.1057">    numStreams = mIContainer.getNumStreams();</a>
+<span class="sourceLineNo">1058</span><a id="line.1058">    /**</a>
+<span class="sourceLineNo">1059</span><a id="line.1059">     * Some video coders (e.g. MP3) will often "read-ahead" in a stream and keep</a>
+<span class="sourceLineNo">1060</span><a id="line.1060">     * extra data around to get efficient compression. But they need some way to</a>
+<span class="sourceLineNo">1061</span><a id="line.1061">     * know they're never going to get more data. The convention for that case</a>
+<span class="sourceLineNo">1062</span><a id="line.1062">     * is to pass null for the IMediaData (e.g. IAudioSamples or IVideoPicture)</a>
+<span class="sourceLineNo">1063</span><a id="line.1063">     * in encodeAudio(...) or encodeVideo(...) once before closing the coder.</a>
+<span class="sourceLineNo">1064</span><a id="line.1064">     * </a>
+<span class="sourceLineNo">1065</span><a id="line.1065">     * In that case, the IStreamCoder will flush all data.</a>
+<span class="sourceLineNo">1066</span><a id="line.1066">     */</a>
+<span class="sourceLineNo">1067</span><a id="line.1067">    for (i = 0; i &lt; numStreams; i++)</a>
+<span class="sourceLineNo">1068</span><a id="line.1068">    {</a>
+<span class="sourceLineNo">1069</span><a id="line.1069">      if (mOCoders[i] != null)</a>
+<span class="sourceLineNo">1070</span><a id="line.1070">      {</a>
+<span class="sourceLineNo">1071</span><a id="line.1071">        IPacket oPacket = IPacket.make();</a>
+<span class="sourceLineNo">1072</span><a id="line.1072">        do {</a>
+<span class="sourceLineNo">1073</span><a id="line.1073">          if (mOCoders[i].getCodecType() == ICodec.Type.CODEC_TYPE_AUDIO)</a>
+<span class="sourceLineNo">1074</span><a id="line.1074">            mOCoders[i].encodeAudio(oPacket, null, 0);</a>
+<span class="sourceLineNo">1075</span><a id="line.1075">          else</a>
+<span class="sourceLineNo">1076</span><a id="line.1076">            mOCoders[i].encodeVideo(oPacket, null, 0);</a>
+<span class="sourceLineNo">1077</span><a id="line.1077">          if (oPacket.isComplete())</a>
+<span class="sourceLineNo">1078</span><a id="line.1078">            mOContainer.writePacket(oPacket, mForceInterleave);</a>
+<span class="sourceLineNo">1079</span><a id="line.1079">        } while (oPacket.isComplete());</a>
+<span class="sourceLineNo">1080</span><a id="line.1080">      }</a>
+<span class="sourceLineNo">1081</span><a id="line.1081">    }</a>
+<span class="sourceLineNo">1082</span><a id="line.1082">    /**</a>
+<span class="sourceLineNo">1083</span><a id="line.1083">     * Some container formats require a trailer to be written to avoid a corrupt</a>
+<span class="sourceLineNo">1084</span><a id="line.1084">     * files.</a>
+<span class="sourceLineNo">1085</span><a id="line.1085">     * </a>
+<span class="sourceLineNo">1086</span><a id="line.1086">     * Others, such as the FLV container muxer, will take a writeTrailer() call</a>
+<span class="sourceLineNo">1087</span><a id="line.1087">     * to tell it to seek() back to the start of the output file and write the</a>
+<span class="sourceLineNo">1088</span><a id="line.1088">     * (now known) duration into the Meta Data.</a>
+<span class="sourceLineNo">1089</span><a id="line.1089">     * </a>
+<span class="sourceLineNo">1090</span><a id="line.1090">     * So trailers are required. In general if a format is a streaming format,</a>
+<span class="sourceLineNo">1091</span><a id="line.1091">     * then the writeTrailer() will never seek backwards.</a>
+<span class="sourceLineNo">1092</span><a id="line.1092">     * </a>
+<span class="sourceLineNo">1093</span><a id="line.1093">     * Make sure you don't close your codecs before you write your trailer, or</a>
+<span class="sourceLineNo">1094</span><a id="line.1094">     * we'll complain loudly and not actually write a trailer.</a>
+<span class="sourceLineNo">1095</span><a id="line.1095">     */</a>
+<span class="sourceLineNo">1096</span><a id="line.1096">    int retval = mOContainer.writeTrailer();</a>
+<span class="sourceLineNo">1097</span><a id="line.1097">    if (retval &lt; 0)</a>
+<span class="sourceLineNo">1098</span><a id="line.1098">      throw new RuntimeException("Could not write trailer to output file");</a>
+<span class="sourceLineNo">1099</span><a id="line.1099"></a>
+<span class="sourceLineNo">1100</span><a id="line.1100">    /**</a>
+<span class="sourceLineNo">1101</span><a id="line.1101">     * We do a nice clean-up here to show you how you should do it.</a>
+<span class="sourceLineNo">1102</span><a id="line.1102">     * </a>
+<span class="sourceLineNo">1103</span><a id="line.1103">     * That said, AVPKit goes to great pains to clean up after you if you</a>
+<span class="sourceLineNo">1104</span><a id="line.1104">     * forget to release things. But still, you should be a good boy or giral</a>
+<span class="sourceLineNo">1105</span><a id="line.1105">     * and clean up yourself.</a>
+<span class="sourceLineNo">1106</span><a id="line.1106">     */</a>
+<span class="sourceLineNo">1107</span><a id="line.1107">    for (i = 0; i &lt; numStreams; i++)</a>
+<span class="sourceLineNo">1108</span><a id="line.1108">    {</a>
+<span class="sourceLineNo">1109</span><a id="line.1109">      if (mOCoders[i] != null)</a>
+<span class="sourceLineNo">1110</span><a id="line.1110">      {</a>
+<span class="sourceLineNo">1111</span><a id="line.1111">        /**</a>
+<span class="sourceLineNo">1112</span><a id="line.1112">         * And close the input coder to tell AVPKit it can release all native</a>
+<span class="sourceLineNo">1113</span><a id="line.1113">         * memory.</a>
+<span class="sourceLineNo">1114</span><a id="line.1114">         */</a>
+<span class="sourceLineNo">1115</span><a id="line.1115">        mOCoders[i].close();</a>
+<span class="sourceLineNo">1116</span><a id="line.1116">      }</a>
+<span class="sourceLineNo">1117</span><a id="line.1117">      mOCoders[i] = null;</a>
+<span class="sourceLineNo">1118</span><a id="line.1118">      if (mICoders[i] != null)</a>
+<span class="sourceLineNo">1119</span><a id="line.1119">        /**</a>
+<span class="sourceLineNo">1120</span><a id="line.1120">         * Close the input coder to tell AVPKit it can release all native</a>
+<span class="sourceLineNo">1121</span><a id="line.1121">         * memory.</a>
+<span class="sourceLineNo">1122</span><a id="line.1122">         */</a>
+<span class="sourceLineNo">1123</span><a id="line.1123">        mICoders[i].close();</a>
+<span class="sourceLineNo">1124</span><a id="line.1124">      mICoders[i] = null;</a>
+<span class="sourceLineNo">1125</span><a id="line.1125">    }</a>
+<span class="sourceLineNo">1126</span><a id="line.1126"></a>
+<span class="sourceLineNo">1127</span><a id="line.1127">    /**</a>
+<span class="sourceLineNo">1128</span><a id="line.1128">     * Tell AVPKit it can close the output file, write all data, and free all</a>
+<span class="sourceLineNo">1129</span><a id="line.1129">     * relevant memory.</a>
+<span class="sourceLineNo">1130</span><a id="line.1130">     */</a>
+<span class="sourceLineNo">1131</span><a id="line.1131">    mOContainer.close();</a>
+<span class="sourceLineNo">1132</span><a id="line.1132">    /**</a>
+<span class="sourceLineNo">1133</span><a id="line.1133">     * And do the same with the input file.</a>
+<span class="sourceLineNo">1134</span><a id="line.1134">     */</a>
+<span class="sourceLineNo">1135</span><a id="line.1135">    mIContainer.close();</a>
+<span class="sourceLineNo">1136</span><a id="line.1136"></a>
+<span class="sourceLineNo">1137</span><a id="line.1137">    /**</a>
+<span class="sourceLineNo">1138</span><a id="line.1138">     * Technically setting everything to null here doesn't do anything but tell</a>
+<span class="sourceLineNo">1139</span><a id="line.1139">     * Java it can collect the memory it used.</a>
+<span class="sourceLineNo">1140</span><a id="line.1140">     * </a>
+<span class="sourceLineNo">1141</span><a id="line.1141">     * The interesting thing to note here is that if you forget to close() a</a>
+<span class="sourceLineNo">1142</span><a id="line.1142">     * AVPKit object, but also loose all references to it from Java, you won't</a>
+<span class="sourceLineNo">1143</span><a id="line.1143">     * leak the native memory. Instead, we'll clean up after you, but we'll</a>
+<span class="sourceLineNo">1144</span><a id="line.1144">     * complain LOUDLY in your logs, so you really don't want to do that.</a>
+<span class="sourceLineNo">1145</span><a id="line.1145">     */</a>
+<span class="sourceLineNo">1146</span><a id="line.1146">    mOContainer = null;</a>
+<span class="sourceLineNo">1147</span><a id="line.1147">    mIContainer = null;</a>
+<span class="sourceLineNo">1148</span><a id="line.1148">    mISamples = null;</a>
+<span class="sourceLineNo">1149</span><a id="line.1149">    mOSamples = null;</a>
+<span class="sourceLineNo">1150</span><a id="line.1150">    mIVideoPictures = null;</a>
+<span class="sourceLineNo">1151</span><a id="line.1151">    mOVideoPictures = null;</a>
+<span class="sourceLineNo">1152</span><a id="line.1152">    mOCoders = null;</a>
+<span class="sourceLineNo">1153</span><a id="line.1153">    mICoders = null;</a>
+<span class="sourceLineNo">1154</span><a id="line.1154">    mASamplers = null;</a>
+<span class="sourceLineNo">1155</span><a id="line.1155">    mVSamplers = null;</a>
+<span class="sourceLineNo">1156</span><a id="line.1156">  }</a>
+<span class="sourceLineNo">1157</span><a id="line.1157"></a>
+<span class="sourceLineNo">1158</span><a id="line.1158">  /**</a>
+<span class="sourceLineNo">1159</span><a id="line.1159">   * Allow child class to override this method to alter the audio frame before</a>
+<span class="sourceLineNo">1160</span><a id="line.1160">   * it is rencoded and written. In this implementation the audio frame is</a>
+<span class="sourceLineNo">1161</span><a id="line.1161">   * passed through unmodified.</a>
+<span class="sourceLineNo">1162</span><a id="line.1162">   * </a>
+<span class="sourceLineNo">1163</span><a id="line.1163">   * @param audioFrame</a>
+<span class="sourceLineNo">1164</span><a id="line.1164">   *          the source audio frame to be modified</a>
+<span class="sourceLineNo">1165</span><a id="line.1165">   * </a>
+<span class="sourceLineNo">1166</span><a id="line.1166">   * @return the modified audio frame</a>
+<span class="sourceLineNo">1167</span><a id="line.1167">   */</a>
+<span class="sourceLineNo">1168</span><a id="line.1168"></a>
+<span class="sourceLineNo">1169</span><a id="line.1169">  protected IAudioSamples alterAudioFrame(IAudioSamples audioFrame)</a>
+<span class="sourceLineNo">1170</span><a id="line.1170">  {</a>
+<span class="sourceLineNo">1171</span><a id="line.1171">    return audioFrame;</a>
+<span class="sourceLineNo">1172</span><a id="line.1172">  }</a>
+<span class="sourceLineNo">1173</span><a id="line.1173"></a>
+<span class="sourceLineNo">1174</span><a id="line.1174">  /**</a>
+<span class="sourceLineNo">1175</span><a id="line.1175">   * Allow child class to override this method to alter the video frame before</a>
+<span class="sourceLineNo">1176</span><a id="line.1176">   * it is rencoded and written. In this implementation the video frame is</a>
+<span class="sourceLineNo">1177</span><a id="line.1177">   * passed through unmodified.</a>
+<span class="sourceLineNo">1178</span><a id="line.1178">   * </a>
+<span class="sourceLineNo">1179</span><a id="line.1179">   * @param videoFrame</a>
+<span class="sourceLineNo">1180</span><a id="line.1180">   *          the source video frame to be modified</a>
+<span class="sourceLineNo">1181</span><a id="line.1181">   * </a>
+<span class="sourceLineNo">1182</span><a id="line.1182">   * @return the modified video frame</a>
+<span class="sourceLineNo">1183</span><a id="line.1183">   */</a>
+<span class="sourceLineNo">1184</span><a id="line.1184"></a>
+<span class="sourceLineNo">1185</span><a id="line.1185">  protected IVideoPicture alterVideoFrame(IVideoPicture videoFrame)</a>
+<span class="sourceLineNo">1186</span><a id="line.1186">  {</a>
+<span class="sourceLineNo">1187</span><a id="line.1187">    return videoFrame;</a>
+<span class="sourceLineNo">1188</span><a id="line.1188">  }</a>
+<span class="sourceLineNo">1189</span><a id="line.1189"></a>
+<span class="sourceLineNo">1190</span><a id="line.1190">  /**</a>
+<span class="sourceLineNo">1191</span><a id="line.1191">   * Takes a given command line and decodes the input file, and encodes with new</a>
+<span class="sourceLineNo">1192</span><a id="line.1192">   * parameters to the output file.</a>
+<span class="sourceLineNo">1193</span><a id="line.1193">   * </a>
+<span class="sourceLineNo">1194</span><a id="line.1194">   * @param cmdLine</a>
+<span class="sourceLineNo">1195</span><a id="line.1195">   *          A command line returned from</a>
+<span class="sourceLineNo">1196</span><a id="line.1196">   *          {@link #parseOptions(Options, String[])}.</a>
+<span class="sourceLineNo">1197</span><a id="line.1197">   */</a>
+<span class="sourceLineNo">1198</span><a id="line.1198">  public void run(CommandLine cmdLine)</a>
+<span class="sourceLineNo">1199</span><a id="line.1199">  {</a>
+<span class="sourceLineNo">1200</span><a id="line.1200">    /**</a>
+<span class="sourceLineNo">1201</span><a id="line.1201">     * Setup all our input and outputs</a>
+<span class="sourceLineNo">1202</span><a id="line.1202">     */</a>
+<span class="sourceLineNo">1203</span><a id="line.1203">    setupStreams(cmdLine);</a>
+<span class="sourceLineNo">1204</span><a id="line.1204"></a>
+<span class="sourceLineNo">1205</span><a id="line.1205">    /**</a>
+<span class="sourceLineNo">1206</span><a id="line.1206">     * Create packet buffers for reading data from and writing data to the</a>
+<span class="sourceLineNo">1207</span><a id="line.1207">     * conatiners.</a>
+<span class="sourceLineNo">1208</span><a id="line.1208">     */</a>
+<span class="sourceLineNo">1209</span><a id="line.1209">    IPacket iPacket = IPacket.make();</a>
+<span class="sourceLineNo">1210</span><a id="line.1210">    IPacket oPacket = IPacket.make();</a>
+<span class="sourceLineNo">1211</span><a id="line.1211"></a>
+<span class="sourceLineNo">1212</span><a id="line.1212">    /**</a>
+<span class="sourceLineNo">1213</span><a id="line.1213">     * Keep some "pointers' we'll use for the audio we're working with.</a>
+<span class="sourceLineNo">1214</span><a id="line.1214">     */</a>
+<span class="sourceLineNo">1215</span><a id="line.1215">    IAudioSamples inSamples = null;</a>
+<span class="sourceLineNo">1216</span><a id="line.1216">    IAudioSamples outSamples = null;</a>
+<span class="sourceLineNo">1217</span><a id="line.1217">    IAudioSamples reSamples = null;</a>
+<span class="sourceLineNo">1218</span><a id="line.1218"></a>
+<span class="sourceLineNo">1219</span><a id="line.1219">    int retval = 0;</a>
+<span class="sourceLineNo">1220</span><a id="line.1220"></a>
+<span class="sourceLineNo">1221</span><a id="line.1221">    /**</a>
+<span class="sourceLineNo">1222</span><a id="line.1222">     * And keep some convenience pointers for the specific stream we're working</a>
+<span class="sourceLineNo">1223</span><a id="line.1223">     * on for a packet.</a>
+<span class="sourceLineNo">1224</span><a id="line.1224">     */</a>
+<span class="sourceLineNo">1225</span><a id="line.1225">    IStreamCoder ic = null;</a>
+<span class="sourceLineNo">1226</span><a id="line.1226">    IStreamCoder oc = null;</a>
+<span class="sourceLineNo">1227</span><a id="line.1227">    IAudioResampler as = null;</a>
+<span class="sourceLineNo">1228</span><a id="line.1228">    IVideoResampler vs = null;</a>
+<span class="sourceLineNo">1229</span><a id="line.1229">    IVideoPicture inFrame = null;</a>
+<span class="sourceLineNo">1230</span><a id="line.1230">    IVideoPicture reFrame = null;</a>
+<span class="sourceLineNo">1231</span><a id="line.1231"></a>
+<span class="sourceLineNo">1232</span><a id="line.1232">    /**</a>
+<span class="sourceLineNo">1233</span><a id="line.1233">     * Now, we've already opened the files in #setupStreams(CommandLine). We</a>
+<span class="sourceLineNo">1234</span><a id="line.1234">     * just keep reading packets from it until the IContainer returns &lt;0</a>
+<span class="sourceLineNo">1235</span><a id="line.1235">     */</a>
+<span class="sourceLineNo">1236</span><a id="line.1236">    while (mIContainer.readNextPacket(iPacket) == 0)</a>
+<span class="sourceLineNo">1237</span><a id="line.1237">    {</a>
+<span class="sourceLineNo">1238</span><a id="line.1238">      /**</a>
+<span class="sourceLineNo">1239</span><a id="line.1239">       * Find out which stream this packet belongs to.</a>
+<span class="sourceLineNo">1240</span><a id="line.1240">       */</a>
+<span class="sourceLineNo">1241</span><a id="line.1241">      int i = iPacket.getStreamIndex();</a>
+<span class="sourceLineNo">1242</span><a id="line.1242">      int offset = 0;</a>
+<span class="sourceLineNo">1243</span><a id="line.1243"></a>
+<span class="sourceLineNo">1244</span><a id="line.1244">      /**</a>
+<span class="sourceLineNo">1245</span><a id="line.1245">       * Find out if this stream has a starting timestamp</a>
+<span class="sourceLineNo">1246</span><a id="line.1246">       */</a>
+<span class="sourceLineNo">1247</span><a id="line.1247">      IStream stream = mIContainer.getStream(i);</a>
+<span class="sourceLineNo">1248</span><a id="line.1248">      long tsOffset = 0;</a>
+<span class="sourceLineNo">1249</span><a id="line.1249">      if (stream.getStartTime() != Global.NO_PTS &amp;&amp; stream.getStartTime() &gt; 0</a>
+<span class="sourceLineNo">1250</span><a id="line.1250">          &amp;&amp; stream.getTimeBase() != null)</a>
+<span class="sourceLineNo">1251</span><a id="line.1251">      {</a>
+<span class="sourceLineNo">1252</span><a id="line.1252">        IRational defTimeBase = IRational.make(1,</a>
+<span class="sourceLineNo">1253</span><a id="line.1253">            (int) Global.DEFAULT_PTS_PER_SECOND);</a>
+<span class="sourceLineNo">1254</span><a id="line.1254">        tsOffset = defTimeBase.rescale(stream.getStartTime(), stream</a>
+<span class="sourceLineNo">1255</span><a id="line.1255">            .getTimeBase());</a>
+<span class="sourceLineNo">1256</span><a id="line.1256">      }</a>
+<span class="sourceLineNo">1257</span><a id="line.1257">      /**</a>
+<span class="sourceLineNo">1258</span><a id="line.1258">       * And look up the appropriate objects that are working on that stream.</a>
+<span class="sourceLineNo">1259</span><a id="line.1259">       */</a>
+<span class="sourceLineNo">1260</span><a id="line.1260">      ic = mICoders[i];</a>
+<span class="sourceLineNo">1261</span><a id="line.1261">      oc = mOCoders[i];</a>
+<span class="sourceLineNo">1262</span><a id="line.1262">      as = mASamplers[i];</a>
+<span class="sourceLineNo">1263</span><a id="line.1263">      vs = mVSamplers[i];</a>
+<span class="sourceLineNo">1264</span><a id="line.1264">      inFrame = mIVideoPictures[i];</a>
+<span class="sourceLineNo">1265</span><a id="line.1265">      reFrame = mOVideoPictures[i];</a>
+<span class="sourceLineNo">1266</span><a id="line.1266">      inSamples = mISamples[i];</a>
+<span class="sourceLineNo">1267</span><a id="line.1267">      reSamples = mOSamples[i];</a>
+<span class="sourceLineNo">1268</span><a id="line.1268"></a>
+<span class="sourceLineNo">1269</span><a id="line.1269">      if (oc == null)</a>
+<span class="sourceLineNo">1270</span><a id="line.1270">        // we didn't set up this coder; ignore the packet</a>
+<span class="sourceLineNo">1271</span><a id="line.1271">        continue;</a>
+<span class="sourceLineNo">1272</span><a id="line.1272"></a>
+<span class="sourceLineNo">1273</span><a id="line.1273">      /**</a>
+<span class="sourceLineNo">1274</span><a id="line.1274">       * Find out if the stream is audio or video.</a>
+<span class="sourceLineNo">1275</span><a id="line.1275">       */</a>
+<span class="sourceLineNo">1276</span><a id="line.1276">      ICodec.Type cType = ic.getCodecType();</a>
+<span class="sourceLineNo">1277</span><a id="line.1277"></a>
+<span class="sourceLineNo">1278</span><a id="line.1278">      if (cType == ICodec.Type.CODEC_TYPE_AUDIO &amp;&amp; mHasAudio)</a>
+<span class="sourceLineNo">1279</span><a id="line.1279">      {</a>
+<span class="sourceLineNo">1280</span><a id="line.1280">        /**</a>
+<span class="sourceLineNo">1281</span><a id="line.1281">         * Decoding audio works by taking the data in the packet, and eating</a>
+<span class="sourceLineNo">1282</span><a id="line.1282">         * chunks from it to create decoded raw data.</a>
+<span class="sourceLineNo">1283</span><a id="line.1283">         * </a>
+<span class="sourceLineNo">1284</span><a id="line.1284">         * However, there may be more data in a packet than is needed to get one</a>
+<span class="sourceLineNo">1285</span><a id="line.1285">         * set of samples (or less), so you need to iterate through the byts to</a>
+<span class="sourceLineNo">1286</span><a id="line.1286">         * get that data.</a>
+<span class="sourceLineNo">1287</span><a id="line.1287">         * </a>
+<span class="sourceLineNo">1288</span><a id="line.1288">         * The following loop is the standard way of doing that.</a>
+<span class="sourceLineNo">1289</span><a id="line.1289">         */</a>
+<span class="sourceLineNo">1290</span><a id="line.1290">        while (offset &lt; iPacket.getSize())</a>
+<span class="sourceLineNo">1291</span><a id="line.1291">        {</a>
+<span class="sourceLineNo">1292</span><a id="line.1292">          retval = ic.decodeAudio(inSamples, iPacket, offset);</a>
+<span class="sourceLineNo">1293</span><a id="line.1293">          if (retval &lt;= 0)</a>
+<span class="sourceLineNo">1294</span><a id="line.1294">            throw new RuntimeException("could not decode audio.  stream: " + i);</a>
+<span class="sourceLineNo">1295</span><a id="line.1295">          </a>
+<span class="sourceLineNo">1296</span><a id="line.1296">          if (inSamples.getTimeStamp() != Global.NO_PTS)</a>
+<span class="sourceLineNo">1297</span><a id="line.1297">            inSamples.setTimeStamp(inSamples.getTimeStamp() - tsOffset);</a>
+<span class="sourceLineNo">1298</span><a id="line.1298"></a>
+<span class="sourceLineNo">1299</span><a id="line.1299">          log.trace("packet:{}; samples:{}; offset:{}", new Object[]</a>
+<span class="sourceLineNo">1300</span><a id="line.1300">          {</a>
+<span class="sourceLineNo">1301</span><a id="line.1301">              iPacket, inSamples, tsOffset</a>
+<span class="sourceLineNo">1302</span><a id="line.1302">          });</a>
+<span class="sourceLineNo">1303</span><a id="line.1303"></a>
+<span class="sourceLineNo">1304</span><a id="line.1304">          /**</a>
+<span class="sourceLineNo">1305</span><a id="line.1305">           * If not an error, the decodeAudio returns the number of bytes it</a>
+<span class="sourceLineNo">1306</span><a id="line.1306">           * consumed. We use that so the next time around the loop we get new</a>
+<span class="sourceLineNo">1307</span><a id="line.1307">           * data.</a>
+<span class="sourceLineNo">1308</span><a id="line.1308">           */</a>
+<span class="sourceLineNo">1309</span><a id="line.1309">          offset += retval;</a>
+<span class="sourceLineNo">1310</span><a id="line.1310">          int numSamplesConsumed = 0;</a>
+<span class="sourceLineNo">1311</span><a id="line.1311">          /**</a>
+<span class="sourceLineNo">1312</span><a id="line.1312">           * If as is not null then we know a resample was needed, so we do that</a>
+<span class="sourceLineNo">1313</span><a id="line.1313">           * resample now.</a>
+<span class="sourceLineNo">1314</span><a id="line.1314">           */</a>
+<span class="sourceLineNo">1315</span><a id="line.1315">          if (as != null &amp;&amp; inSamples.getNumSamples() &gt; 0)</a>
+<span class="sourceLineNo">1316</span><a id="line.1316">          {</a>
+<span class="sourceLineNo">1317</span><a id="line.1317">            retval = as.resample(reSamples, inSamples, inSamples</a>
+<span class="sourceLineNo">1318</span><a id="line.1318">                .getNumSamples());</a>
+<span class="sourceLineNo">1319</span><a id="line.1319"></a>
+<span class="sourceLineNo">1320</span><a id="line.1320">            outSamples = reSamples;</a>
+<span class="sourceLineNo">1321</span><a id="line.1321">          }</a>
+<span class="sourceLineNo">1322</span><a id="line.1322">          else</a>
+<span class="sourceLineNo">1323</span><a id="line.1323">          {</a>
+<span class="sourceLineNo">1324</span><a id="line.1324">            outSamples = inSamples;</a>
+<span class="sourceLineNo">1325</span><a id="line.1325">          }</a>
+<span class="sourceLineNo">1326</span><a id="line.1326"></a>
+<span class="sourceLineNo">1327</span><a id="line.1327">          /**</a>
+<span class="sourceLineNo">1328</span><a id="line.1328">           * Include call a hook to derivied classes to allow them to alter the</a>
+<span class="sourceLineNo">1329</span><a id="line.1329">           * audio frame.</a>
+<span class="sourceLineNo">1330</span><a id="line.1330">           */</a>
+<span class="sourceLineNo">1331</span><a id="line.1331"></a>
+<span class="sourceLineNo">1332</span><a id="line.1332">          outSamples = alterAudioFrame(outSamples);</a>
+<span class="sourceLineNo">1333</span><a id="line.1333"></a>
+<span class="sourceLineNo">1334</span><a id="line.1334">          /**</a>
+<span class="sourceLineNo">1335</span><a id="line.1335">           * Now that we've resampled, it's time to encode the audio.</a>
+<span class="sourceLineNo">1336</span><a id="line.1336">           * </a>
+<span class="sourceLineNo">1337</span><a id="line.1337">           * This workflow is similar to decoding; you may have more, less or</a>
+<span class="sourceLineNo">1338</span><a id="line.1338">           * just enough audio samples available to encode a packet. But you</a>
+<span class="sourceLineNo">1339</span><a id="line.1339">           * must iterate through.</a>
+<span class="sourceLineNo">1340</span><a id="line.1340">           * </a>
+<span class="sourceLineNo">1341</span><a id="line.1341">           * Unfortunately (don't ask why) there is a slight difference between</a>
+<span class="sourceLineNo">1342</span><a id="line.1342">           * encodeAudio and decodeAudio; encodeAudio returns the number of</a>
+<span class="sourceLineNo">1343</span><a id="line.1343">           * samples consumed, NOT the number of bytes. This can be confusing,</a>
+<span class="sourceLineNo">1344</span><a id="line.1344">           * and we encourage you to read the IAudioSamples documentation to</a>
+<span class="sourceLineNo">1345</span><a id="line.1345">           * find out what the difference is.</a>
+<span class="sourceLineNo">1346</span><a id="line.1346">           * </a>
+<span class="sourceLineNo">1347</span><a id="line.1347">           * But in any case, the following loop encodes the samples we have</a>
+<span class="sourceLineNo">1348</span><a id="line.1348">           * into packets.</a>
+<span class="sourceLineNo">1349</span><a id="line.1349">           */</a>
+<span class="sourceLineNo">1350</span><a id="line.1350">          while (numSamplesConsumed &lt; outSamples.getNumSamples())</a>
+<span class="sourceLineNo">1351</span><a id="line.1351">          {</a>
+<span class="sourceLineNo">1352</span><a id="line.1352">            retval = oc.encodeAudio(oPacket, outSamples, numSamplesConsumed);</a>
+<span class="sourceLineNo">1353</span><a id="line.1353">            if (retval &lt;= 0)</a>
+<span class="sourceLineNo">1354</span><a id="line.1354">              throw new RuntimeException("Could not encode any audio: "</a>
+<span class="sourceLineNo">1355</span><a id="line.1355">                  + retval);</a>
+<span class="sourceLineNo">1356</span><a id="line.1356">            /**</a>
+<span class="sourceLineNo">1357</span><a id="line.1357">             * Increment the number of samples consumed, so that the next time</a>
+<span class="sourceLineNo">1358</span><a id="line.1358">             * through this loop we encode new audio</a>
+<span class="sourceLineNo">1359</span><a id="line.1359">             */</a>
+<span class="sourceLineNo">1360</span><a id="line.1360">            numSamplesConsumed += retval;</a>
+<span class="sourceLineNo">1361</span><a id="line.1361">            log.trace("out packet:{}; samples:{}; offset:{}", new Object[]{</a>
+<span class="sourceLineNo">1362</span><a id="line.1362">                oPacket, outSamples, tsOffset</a>
+<span class="sourceLineNo">1363</span><a id="line.1363">            });</a>
+<span class="sourceLineNo">1364</span><a id="line.1364"></a>
+<span class="sourceLineNo">1365</span><a id="line.1365">            writePacket(oPacket);</a>
+<span class="sourceLineNo">1366</span><a id="line.1366">          }</a>
+<span class="sourceLineNo">1367</span><a id="line.1367">        }</a>
+<span class="sourceLineNo">1368</span><a id="line.1368"></a>
+<span class="sourceLineNo">1369</span><a id="line.1369">      }</a>
+<span class="sourceLineNo">1370</span><a id="line.1370">      else if (cType == ICodec.Type.CODEC_TYPE_VIDEO &amp;&amp; mHasVideo)</a>
+<span class="sourceLineNo">1371</span><a id="line.1371">      {</a>
+<span class="sourceLineNo">1372</span><a id="line.1372">        /**</a>
+<span class="sourceLineNo">1373</span><a id="line.1373">         * This encoding workflow is pretty much the same as the for the audio</a>
+<span class="sourceLineNo">1374</span><a id="line.1374">         * above.</a>
+<span class="sourceLineNo">1375</span><a id="line.1375">         * </a>
+<span class="sourceLineNo">1376</span><a id="line.1376">         * The only major delta is that encodeVideo() will always consume one</a>
+<span class="sourceLineNo">1377</span><a id="line.1377">         * frame (whereas encodeAudio() might only consume some samples in an</a>
+<span class="sourceLineNo">1378</span><a id="line.1378">         * IAudioSamples buffer); it might not be able to output a packet yet,</a>
+<span class="sourceLineNo">1379</span><a id="line.1379">         * but you can assume that you it consumes the entire frame.</a>
+<span class="sourceLineNo">1380</span><a id="line.1380">         */</a>
+<span class="sourceLineNo">1381</span><a id="line.1381">        IVideoPicture outFrame = null;</a>
+<span class="sourceLineNo">1382</span><a id="line.1382">        while (offset &lt; iPacket.getSize())</a>
+<span class="sourceLineNo">1383</span><a id="line.1383">        {</a>
+<span class="sourceLineNo">1384</span><a id="line.1384">          retval = ic.decodeVideo(inFrame, iPacket, offset);</a>
+<span class="sourceLineNo">1385</span><a id="line.1385">          if (retval &lt;= 0)</a>
+<span class="sourceLineNo">1386</span><a id="line.1386">            throw new RuntimeException("could not decode any video.  stream: "</a>
+<span class="sourceLineNo">1387</span><a id="line.1387">                + i);</a>
+<span class="sourceLineNo">1388</span><a id="line.1388"></a>
+<span class="sourceLineNo">1389</span><a id="line.1389">          log.trace("decoded vid ts: {}; pkts ts: {}", inFrame.getTimeStamp(),</a>
+<span class="sourceLineNo">1390</span><a id="line.1390">              iPacket.getTimeStamp());</a>
+<span class="sourceLineNo">1391</span><a id="line.1391">          if (inFrame.getTimeStamp() != Global.NO_PTS)</a>
+<span class="sourceLineNo">1392</span><a id="line.1392">            inFrame.setTimeStamp(inFrame.getTimeStamp() - tsOffset);</a>
+<span class="sourceLineNo">1393</span><a id="line.1393"></a>
+<span class="sourceLineNo">1394</span><a id="line.1394">          offset += retval;</a>
+<span class="sourceLineNo">1395</span><a id="line.1395">          if (inFrame.isComplete())</a>
+<span class="sourceLineNo">1396</span><a id="line.1396">          {</a>
+<span class="sourceLineNo">1397</span><a id="line.1397">            if (vs != null)</a>
+<span class="sourceLineNo">1398</span><a id="line.1398">            {</a>
+<span class="sourceLineNo">1399</span><a id="line.1399">              retval = vs.resample(reFrame, inFrame);</a>
+<span class="sourceLineNo">1400</span><a id="line.1400">              if (retval &lt; 0)</a>
+<span class="sourceLineNo">1401</span><a id="line.1401">                throw new RuntimeException("could not resample video");</a>
+<span class="sourceLineNo">1402</span><a id="line.1402">              outFrame = reFrame;</a>
+<span class="sourceLineNo">1403</span><a id="line.1403">            }</a>
+<span class="sourceLineNo">1404</span><a id="line.1404">            else</a>
+<span class="sourceLineNo">1405</span><a id="line.1405">            {</a>
+<span class="sourceLineNo">1406</span><a id="line.1406">              outFrame = inFrame;</a>
+<span class="sourceLineNo">1407</span><a id="line.1407">            }</a>
+<span class="sourceLineNo">1408</span><a id="line.1408"></a>
+<span class="sourceLineNo">1409</span><a id="line.1409">            /**</a>
+<span class="sourceLineNo">1410</span><a id="line.1410">             * Include call a hook to derivied classes to allow them to alter</a>
+<span class="sourceLineNo">1411</span><a id="line.1411">             * the audio frame.</a>
+<span class="sourceLineNo">1412</span><a id="line.1412">             */</a>
+<span class="sourceLineNo">1413</span><a id="line.1413"></a>
+<span class="sourceLineNo">1414</span><a id="line.1414">            outFrame = alterVideoFrame(outFrame);</a>
+<span class="sourceLineNo">1415</span><a id="line.1415"></a>
+<span class="sourceLineNo">1416</span><a id="line.1416">            outFrame.setQuality(0);</a>
+<span class="sourceLineNo">1417</span><a id="line.1417">            retval = oc.encodeVideo(oPacket, outFrame, 0);</a>
+<span class="sourceLineNo">1418</span><a id="line.1418">            if (retval &lt; 0)</a>
+<span class="sourceLineNo">1419</span><a id="line.1419">              throw new RuntimeException("could not encode video");</a>
+<span class="sourceLineNo">1420</span><a id="line.1420">            writePacket(oPacket);</a>
+<span class="sourceLineNo">1421</span><a id="line.1421">          }</a>
+<span class="sourceLineNo">1422</span><a id="line.1422">        }</a>
+<span class="sourceLineNo">1423</span><a id="line.1423">      }</a>
+<span class="sourceLineNo">1424</span><a id="line.1424">      else</a>
+<span class="sourceLineNo">1425</span><a id="line.1425">      {</a>
+<span class="sourceLineNo">1426</span><a id="line.1426">        /**</a>
+<span class="sourceLineNo">1427</span><a id="line.1427">         * Just to be complete; there are other types of data that can show up</a>
+<span class="sourceLineNo">1428</span><a id="line.1428">         * in streams (e.g. SUB TITLE).</a>
+<span class="sourceLineNo">1429</span><a id="line.1429">         * </a>
+<span class="sourceLineNo">1430</span><a id="line.1430">         * Right now we don't support decoding and encoding that data, but youc</a>
+<span class="sourceLineNo">1431</span><a id="line.1431">         * could still decide to write out the packets if you wanted.</a>
+<span class="sourceLineNo">1432</span><a id="line.1432">         */</a>
+<span class="sourceLineNo">1433</span><a id="line.1433">        log.trace("ignoring packet of type: {}", cType);</a>
+<span class="sourceLineNo">1434</span><a id="line.1434">      }</a>
+<span class="sourceLineNo">1435</span><a id="line.1435"></a>
+<span class="sourceLineNo">1436</span><a id="line.1436">    }</a>
+<span class="sourceLineNo">1437</span><a id="line.1437"></a>
+<span class="sourceLineNo">1438</span><a id="line.1438">    // and cleanup.</a>
+<span class="sourceLineNo">1439</span><a id="line.1439">    closeStreams();</a>
+<span class="sourceLineNo">1440</span><a id="line.1440">  }</a>
+<span class="sourceLineNo">1441</span><a id="line.1441"></a>
+<span class="sourceLineNo">1442</span><a id="line.1442">  private void writePacket(IPacket oPacket)</a>
+<span class="sourceLineNo">1443</span><a id="line.1443">  {</a>
+<span class="sourceLineNo">1444</span><a id="line.1444">    int retval;</a>
+<span class="sourceLineNo">1445</span><a id="line.1445">    if (oPacket.isComplete())</a>
+<span class="sourceLineNo">1446</span><a id="line.1446">    {</a>
+<span class="sourceLineNo">1447</span><a id="line.1447">      if (mRealTimeEncoder)</a>
+<span class="sourceLineNo">1448</span><a id="line.1448">      {</a>
+<span class="sourceLineNo">1449</span><a id="line.1449">        delayForRealTime(oPacket);</a>
+<span class="sourceLineNo">1450</span><a id="line.1450">      }</a>
+<span class="sourceLineNo">1451</span><a id="line.1451">      /**</a>
+<span class="sourceLineNo">1452</span><a id="line.1452">       * If we got a complete packet out of the encoder, then go ahead</a>
+<span class="sourceLineNo">1453</span><a id="line.1453">       * and write it to the container.</a>
+<span class="sourceLineNo">1454</span><a id="line.1454">       */</a>
+<span class="sourceLineNo">1455</span><a id="line.1455">      retval = mOContainer.writePacket(oPacket, mForceInterleave);</a>
+<span class="sourceLineNo">1456</span><a id="line.1456">      if (retval &lt; 0)</a>
+<span class="sourceLineNo">1457</span><a id="line.1457">        throw new RuntimeException("could not write output packet");</a>
+<span class="sourceLineNo">1458</span><a id="line.1458">    }</a>
+<span class="sourceLineNo">1459</span><a id="line.1459">  }</a>
+<span class="sourceLineNo">1460</span><a id="line.1460"></a>
+<span class="sourceLineNo">1461</span><a id="line.1461">  /**</a>
+<span class="sourceLineNo">1462</span><a id="line.1462">   * WARNING for those who want to copy this method and think it'll stream</a>
+<span class="sourceLineNo">1463</span><a id="line.1463">   * for them -- it won't.  It doesn't interleave packets from non-interleaved</a>
+<span class="sourceLineNo">1464</span><a id="line.1464">   * containers, so instead it'll write chunky data.  But it's useful if you</a>
+<span class="sourceLineNo">1465</span><a id="line.1465">   * have previously interleaved data that you want to write out slowly to</a>
+<span class="sourceLineNo">1466</span><a id="line.1466">   * a file, or, a socket.</a>
+<span class="sourceLineNo">1467</span><a id="line.1467">   * @param oPacket the packet about to be written.</a>
+<span class="sourceLineNo">1468</span><a id="line.1468">   */</a>
+<span class="sourceLineNo">1469</span><a id="line.1469">  private void delayForRealTime(IPacket oPacket)</a>
+<span class="sourceLineNo">1470</span><a id="line.1470">  {</a>
+<span class="sourceLineNo">1471</span><a id="line.1471">    // convert packet timestamp to microseconds</a>
+<span class="sourceLineNo">1472</span><a id="line.1472">    final IRational timeBase = oPacket.getTimeBase();</a>
+<span class="sourceLineNo">1473</span><a id="line.1473">    if (timeBase == null || timeBase.getNumerator() == 0 ||</a>
+<span class="sourceLineNo">1474</span><a id="line.1474">        timeBase.getDenominator() == 0)</a>
+<span class="sourceLineNo">1475</span><a id="line.1475">      return;</a>
+<span class="sourceLineNo">1476</span><a id="line.1476">    long dts = oPacket.getDts();</a>
+<span class="sourceLineNo">1477</span><a id="line.1477">    if (dts == Global.NO_PTS)</a>
+<span class="sourceLineNo">1478</span><a id="line.1478">      return;</a>
+<span class="sourceLineNo">1479</span><a id="line.1479">    </a>
+<span class="sourceLineNo">1480</span><a id="line.1480">    final long currStreamTime = IRational.rescale(dts,</a>
+<span class="sourceLineNo">1481</span><a id="line.1481">        1,</a>
+<span class="sourceLineNo">1482</span><a id="line.1482">        1000000,</a>
+<span class="sourceLineNo">1483</span><a id="line.1483">        timeBase.getNumerator(),</a>
+<span class="sourceLineNo">1484</span><a id="line.1484">        timeBase.getDenominator(),</a>
+<span class="sourceLineNo">1485</span><a id="line.1485">        IRational.Rounding.ROUND_NEAR_INF);</a>
+<span class="sourceLineNo">1486</span><a id="line.1486">    if (mStartStreamTime == null)</a>
+<span class="sourceLineNo">1487</span><a id="line.1487">      mStartStreamTime = currStreamTime;</a>
+<span class="sourceLineNo">1488</span><a id="line.1488"></a>
+<span class="sourceLineNo">1489</span><a id="line.1489">    // convert now to microseconds</a>
+<span class="sourceLineNo">1490</span><a id="line.1490">    final long currClockTime = System.nanoTime()/1000;</a>
+<span class="sourceLineNo">1491</span><a id="line.1491">    if (mStartClockTime == null)</a>
+<span class="sourceLineNo">1492</span><a id="line.1492">      mStartClockTime = currClockTime;</a>
+<span class="sourceLineNo">1493</span><a id="line.1493">    </a>
+<span class="sourceLineNo">1494</span><a id="line.1494">    final long currClockDelta  = currClockTime - mStartClockTime;</a>
+<span class="sourceLineNo">1495</span><a id="line.1495">    if (currClockDelta &lt; 0)</a>
+<span class="sourceLineNo">1496</span><a id="line.1496">      return;</a>
+<span class="sourceLineNo">1497</span><a id="line.1497">    final long currStreamDelta = currStreamTime - mStartStreamTime;</a>
+<span class="sourceLineNo">1498</span><a id="line.1498">    if (currStreamDelta &lt; 0)</a>
+<span class="sourceLineNo">1499</span><a id="line.1499">      return;</a>
+<span class="sourceLineNo">1500</span><a id="line.1500">    final long streamToClockDeltaMilliseconds = (currStreamDelta - currClockDelta)/1000;</a>
+<span class="sourceLineNo">1501</span><a id="line.1501">    if (streamToClockDeltaMilliseconds &lt;= 0)</a>
+<span class="sourceLineNo">1502</span><a id="line.1502">      return;</a>
+<span class="sourceLineNo">1503</span><a id="line.1503">    try</a>
+<span class="sourceLineNo">1504</span><a id="line.1504">    {</a>
+<span class="sourceLineNo">1505</span><a id="line.1505">      Thread.sleep(streamToClockDeltaMilliseconds);</a>
+<span class="sourceLineNo">1506</span><a id="line.1506">    }</a>
+<span class="sourceLineNo">1507</span><a id="line.1507">    catch (InterruptedException e)</a>
+<span class="sourceLineNo">1508</span><a id="line.1508">    {</a>
+<span class="sourceLineNo">1509</span><a id="line.1509">    }</a>
+<span class="sourceLineNo">1510</span><a id="line.1510">  }</a>
+<span class="sourceLineNo">1511</span><a id="line.1511"></a>
+<span class="sourceLineNo">1512</span><a id="line.1512">  /**</a>
+<span class="sourceLineNo">1513</span><a id="line.1513">   * </a>
+<span class="sourceLineNo">1514</span><a id="line.1514">   * A simple test of core, this program takes an input file, and outputs it</a>
+<span class="sourceLineNo">1515</span><a id="line.1515">   * as an output file.</a>
+<span class="sourceLineNo">1516</span><a id="line.1516">   * </a>
+<span class="sourceLineNo">1517</span><a id="line.1517">   * @param args</a>
+<span class="sourceLineNo">1518</span><a id="line.1518">   *          The command line args passed to this program.</a>
+<span class="sourceLineNo">1519</span><a id="line.1519">   */</a>
+<span class="sourceLineNo">1520</span><a id="line.1520">  </a>
+<span class="sourceLineNo">1521</span><a id="line.1521">  public static void main(String[] args)</a>
+<span class="sourceLineNo">1522</span><a id="line.1522">  {</a>
+<span class="sourceLineNo">1523</span><a id="line.1523">    Converter converter = new Converter();</a>
+<span class="sourceLineNo">1524</span><a id="line.1524"></a>
+<span class="sourceLineNo">1525</span><a id="line.1525">    try</a>
+<span class="sourceLineNo">1526</span><a id="line.1526">    {</a>
+<span class="sourceLineNo">1527</span><a id="line.1527">      // first define options</a>
+<span class="sourceLineNo">1528</span><a id="line.1528">      Options options = converter.defineOptions();</a>
+<span class="sourceLineNo">1529</span><a id="line.1529">      // And then parse them.</a>
+<span class="sourceLineNo">1530</span><a id="line.1530">      CommandLine cmdLine = converter.parseOptions(options, args);</a>
+<span class="sourceLineNo">1531</span><a id="line.1531">      // Finally, run the converter.</a>
+<span class="sourceLineNo">1532</span><a id="line.1532">      converter.run(cmdLine);</a>
+<span class="sourceLineNo">1533</span><a id="line.1533">    }</a>
+<span class="sourceLineNo">1534</span><a id="line.1534">    catch (Exception exception)</a>
+<span class="sourceLineNo">1535</span><a id="line.1535">    {</a>
+<span class="sourceLineNo">1536</span><a id="line.1536">      System.err.printf("Error: %s\n", exception.getMessage());</a>
+<span class="sourceLineNo">1537</span><a id="line.1537">    }</a>
+<span class="sourceLineNo">1538</span><a id="line.1538">  }</a>
+<span class="sourceLineNo">1539</span><a id="line.1539"></a>
+<span class="sourceLineNo">1540</span><a id="line.1540">}</a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</main>
+</body>
+</html>
